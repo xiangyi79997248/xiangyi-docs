@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>翔奕營造 - 案場公文智慧檢索與 Word 雲端同步系統</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Mammoth.js for Word (.docx) Parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  
+  <style>
+    /* 翔奕營造專屬配色與樣式 */
+    :root {
+      --brand-main: #005757;
+      --brand-project: #6FB7B7;
+      --brand-word: #004B97;
+      --urgency-normal: #9999CC;
+    }
+    .bg-brand-header { background: #005757 !important; }
+    .bg-project-theme { background-color: #6FB7B7 !important; }
+    .text-project-theme { color: #2c5959 !important; }
+    .border-project-theme { border-color: #6FB7B7 !important; }
+    
+    .bg-word-theme { background-color: #004B97 !important; }
+    .text-word-theme { color: #004B97 !important; }
+    .border-word-theme { border-color: #004B97 !important; }
+
+    /* 普通件色調 */
+    .bg-urgency-normal { background-color: #9999CC !important; color: #ffffff !important; }
+
+    /* Logo 透明背景設定 */
+    .header-logo-transparent {
+      height: 40px !important;
+      width: auto !important;
+      max-height: 40px !important;
+      object-fit: contain !important;
+      background: transparent !important;
+      padding: 0 !important;
+      display: block !important;
+    }
+
+    /* 表格欄位拖曳拉伸樣式 (Column Resizing) */
+    .resizable-th {
+      position: relative;
+      user-select: none;
+    }
+    .col-resizer {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 8px;
+      cursor: col-resize;
+      user-select: none;
+      height: 100%;
+      z-index: 20;
+    }
+    .col-resizer:hover, .resizing {
+      background-color: #6FB7B7 !important;
+    }
+
+    /* Word 預覽紙張樣式 */
+    .word-preview-paper {
+      background: #ffffff;
+      padding: 2.2rem;
+      border-radius: 6px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      font-family: "Noto Serif TC", "PMingLiU", "Times New Roman", serif;
+      line-height: 1.8;
+      color: #1f2937;
+      min-height: 280px;
+    }
+    .word-preview-paper h1 { font-size: 1.5rem; text-align: center; font-weight: bold; margin-bottom: 1rem; color: #111827; }
+    .word-preview-paper h2 { font-size: 1.25rem; font-weight: bold; margin-top: 1rem; margin-bottom: 0.5rem; }
+    .word-preview-paper p { margin-bottom: 0.8rem; text-align: justify; }
+    .word-preview-paper table { width: 100%; border-collapse: collapse; margin: 1.2rem 0; }
+    .word-preview-paper th, .word-preview-paper td { border: 1px solid #718096; padding: 6px 10px; font-size: 0.95rem; }
+    .word-preview-paper th { background: #edf2f7; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col font-sans">
+
+  <!-- 頂部導航橫幅（#005757） -->
+  <header class="bg-brand-header text-white shadow-lg sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3">
+      
+      <!-- 企業 Logo 區塊（純透明底） -->
+      <div class="flex items-center space-x-3">
+        <div class="flex items-center justify-center bg-transparent">
+          <img src="https://lh3.googleusercontent.com/d/1IwoAL8I7c54k6HiAMc7K4OHVYrn-iR9V" alt="翔奕營造 Logo" class="header-logo-transparent" />
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-bold text-xl tracking-wider leading-none">翔奕營造</h1>
+            <span class="text-[11px] bg-white/20 px-2 py-0.5 rounded font-semibold tracking-normal">公文管理系統（雲端版）</span>
+          </div>
+          <p class="text-xs text-teal-100 mt-1">工程案場公文收發、Word (.docx) 自動擷取與多人即時雲端同步</p>
+        </div>
+      </div>
+
+      <!-- 操作按鈕 -->
+      <div class="flex items-center gap-2.5">
+        <button onclick="loadFromCloud(true)" class="flex items-center gap-1 px-3 py-1.5 text-xs sm:text-sm bg-teal-800 hover:bg-teal-700 rounded border border-teal-500 text-white transition">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5" id="sync-icon"></i> 重新載入雲端
+        </button>
+        <button onclick="exportCSV()" class="flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm bg-teal-900/70 hover:bg-teal-800 rounded border border-teal-600 transition text-white">
+          <i data-lucide="download" class="w-4 h-4"></i> 匯出總表
+        </button>
+        <!-- 上傳公文按鈕 -->
+        <button onclick="openModal()" class="flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold rounded-lg shadow transition">
+          <i data-lucide="file-plus-2" class="w-4 h-4"></i> 上傳公文 (Word)
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 雲端同步狀態提示列 -->
+  <div class="bg-teal-50 border-b border-teal-200 py-1.5 px-4 text-xs flex justify-between items-center text-teal-900">
+    <div class="max-w-7xl mx-auto w-full flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span>☁️ <strong>雲端狀態：</strong><span id="cloud-status-text">就緒（已連接 Google 試算表與雲端硬碟）</span></span>
+      </div>
+      <span class="text-[11px] text-teal-700">任何終端設備上傳將立即同步至公司資料庫</span>
+    </div>
+  </div>
+
+  <!-- 主工作區塊 -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 w-full flex-grow flex flex-col gap-5">
+
+    <!-- 統計指標卡 -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs text-slate-500 font-medium">進行中案場</p>
+          <p id="stat-projects-count" class="text-2xl font-bold text-slate-800">0</p>
+        </div>
+        <div class="p-2.5 rounded-lg text-white" style="background:#6FB7B7;"><i data-lucide="building" class="w-5 h-5"></i></div>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs text-slate-500 font-medium">公文總筆數</p>
+          <p id="stat-docs-count" class="text-2xl font-bold text-slate-800">0</p>
+        </div>
+        <div class="p-2.5 rounded-lg text-white" style="background:#005757;"><i data-lucide="files" class="w-5 h-5"></i></div>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs text-slate-500 font-medium">含 Word 正本</p>
+          <p id="stat-word-count" class="text-2xl font-bold" style="color:#004B97;">0</p>
+        </div>
+        <div class="p-2.5 rounded-lg text-white" style="background:#004B97;"><i data-lucide="file-type-2" class="w-5 h-5"></i></div>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs text-slate-500 font-medium">普通件 / 最速件</p>
+          <p class="text-xl font-bold text-slate-800"><span id="stat-normal-count" style="color:#9999CC;">0</span> / <span id="stat-urgent-count" class="text-red-600">0</span></p>
+        </div>
+        <div class="p-2.5 rounded-lg text-white" style="background:#9999CC;"><i data-lucide="clock" class="w-5 h-5"></i></div>
+      </div>
+    </div>
+
+    <!-- 案場選擇分頁列 -->
+    <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2 overflow-x-auto scrollbar-none py-0.5" id="project-tabs">
+        <!-- JS 動態生成 -->
+      </div>
+      <button onclick="promptNewProject()" class="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-teal-900 bg-slate-100 hover:bg-teal-50 border border-slate-300 hover:border-teal-400 rounded-lg transition">
+        <i data-lucide="plus" class="w-3.5 h-3.5"></i> 新增案場
+      </button>
+    </div>
+
+    <!-- 檢索與多條件篩選列 -->
+    <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3">
+      <div class="relative flex-grow">
+        <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-3 text-slate-400"></i>
+        <input 
+          id="search-input"
+          type="text" 
+          placeholder="搜尋字號、主旨、受文單位或 Word 內文全文關鍵字..." 
+          oninput="renderDocList()"
+          class="w-full pl-9 pr-4 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-700 focus:bg-white transition"
+        />
+      </div>
+
+      <!-- 公文類別篩選 -->
+      <div class="w-full md:w-44">
+        <select id="filter-type" onchange="renderDocList()" class="w-full py-1.5 px-3 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-teal-700">
+          <option value="ALL">全部公文類別</option>
+          <option value="函">函</option>
+          <option value="書函">書函</option>
+          <option value="開工/變更報備">開工/變更報備</option>
+          <option value="審查意見書">審查意見書</option>
+          <option value="會議紀錄">會議紀錄</option>
+          <option value="工務通報">工務通報</option>
+        </select>
+      </div>
+
+      <!-- 速別篩選 -->
+      <div class="w-full md:w-36">
+        <select id="filter-urgency" onchange="renderDocList()" class="w-full py-1.5 px-3 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-teal-700">
+          <option value="ALL">全部速別</option>
+          <option value="最速件">最速件</option>
+          <option value="速件">速件</option>
+          <option value="普通件">普通件</option>
+        </select>
+      </div>
+
+      <!-- 排序 -->
+      <div class="w-full md:w-40">
+        <select id="filter-sort" onchange="renderDocList()" class="w-full py-1.5 px-3 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-700 focus:ring-2 focus:ring-teal-700">
+          <option value="date-desc">發文日期：由新至舊</option>
+          <option value="date-asc">發文日期：由舊至新</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 表格列表（支援 Column Resizing 拉寬縮小） -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex-grow">
+      <div class="overflow-x-auto w-full">
+        <table id="doc-table" class="w-full text-left border-collapse text-sm table-fixed min-w-[1050px]">
+          <thead>
+            <tr class="bg-slate-50 text-slate-600 border-b border-slate-200 font-semibold text-xs select-none">
+              <th class="py-3 px-3 resizable-th" style="width: 210px;">
+                公文字號 <div class="col-resizer"></div>
+              </th>
+              <th class="py-3 px-3 resizable-th" style="width: 170px;">
+                所屬案場 <div class="col-resizer"></div>
+              </th>
+              <th class="py-3 px-3 resizable-th" style="width: 320px;">
+                公文主旨 <div class="col-resizer"></div>
+              </th>
+              <th class="py-3 px-3 resizable-th" style="width: 150px;">
+                類別 / 速別 <div class="col-resizer"></div>
+              </th>
+              <th class="py-3 px-3 resizable-th" style="width: 110px;">
+                發文日期 <div class="col-resizer"></div>
+              </th>
+              <th class="py-3 px-3 resizable-th" style="width: 190px;">
+                Word 文檔 <div class="col-resizer"></div>
+              </th>
+              <th class="py-3 px-3 resizable-th text-center" style="width: 110px;">
+                操作
+              </th>
+            </tr>
+          </thead>
+          <tbody id="document-table-body" class="divide-y divide-slate-100">
+            <!-- JS 動態渲染 -->
+          </tbody>
+        </table>
+      </div>
+      <div id="empty-state" class="hidden py-14 text-center">
+        <i data-lucide="file-search" class="w-12 h-12 mx-auto text-slate-300 mb-2"></i>
+        <p class="text-slate-500 font-medium">查無符合條件的公文或 Word 檔案</p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- 右側公文詳細抽屜與 Word 預覽 -->
+  <div id="detail-drawer" class="fixed inset-y-0 right-0 w-full md:w-[650px] lg:w-[750px] bg-slate-50 shadow-2xl z-50 transform translate-x-full transition-transform duration-300 flex flex-col">
+    <div class="bg-white px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span id="drawer-type-badge" class="px-2 py-0.5 text-xs font-bold rounded text-white shadow-sm"></span>
+        <span id="drawer-urgency-badge" class="px-2 py-0.5 text-xs font-bold rounded text-white shadow-sm"></span>
+        <h3 id="drawer-code" class="text-sm font-bold text-slate-800 ml-1"></h3>
+      </div>
+      <button onclick="closeDrawer()" class="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <div class="flex-grow overflow-y-auto p-5 space-y-4">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 space-y-2.5">
+        <h4 id="drawer-subject" class="text-base font-bold text-slate-900 leading-normal"></h4>
+        <div class="grid grid-cols-2 gap-y-2 gap-x-3 text-xs pt-2 border-t border-slate-100">
+          <div><span class="text-slate-400">所屬案場：</span><span id="drawer-project" class="font-bold text-teal-800"></span></div>
+          <div><span class="text-slate-400">發文日期：</span><span id="drawer-date" class="font-medium text-slate-800 font-mono"></span></div>
+          <div><span class="text-slate-400">發文單位：</span><span id="drawer-sender" class="font-medium text-slate-800"></span></div>
+          <div><span class="text-slate-400">受文單位：</span><span id="drawer-receiver" class="font-medium text-slate-800"></span></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-1.5">
+            <i data-lucide="file-text" class="w-4 h-4 text-word-theme"></i>
+            <span class="text-xs font-bold text-slate-800">Word 原文內容在線預覽</span>
+          </div>
+          <div id="drawer-download-container"></div>
+        </div>
+        <div id="drawer-word-preview" class="word-preview-paper"></div>
+      </div>
+    </div>
+  </div>
+  <div id="drawer-backdrop" onclick="closeDrawer()" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden"></div>
+
+  <!-- 上傳公文 (Word) Modal -->
+  <div id="upload-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl overflow-y-auto max-h-[92vh]">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+          <i data-lucide="cloud-upload" class="w-5 h-5 text-teal-700"></i> 上傳公文並同步至雲端硬碟
+        </h3>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <form id="doc-form" onsubmit="handleFormSubmit(event)" class="space-y-3.5 mt-3.5 text-xs">
+        
+        <!-- 檔案上傳區塊（優先自動辨識） -->
+        <div class="p-3 bg-gradient-to-r from-blue-50 to-teal-50/60 border-2 border-dashed border-teal-400 rounded-xl space-y-1.5">
+          <div class="flex items-center justify-between">
+            <label class="font-bold text-teal-950 flex items-center gap-1.5 text-sm">
+              <i data-lucide="sparkles" class="w-4 h-4 text-amber-500"></i> 步驟 1：選擇 Word 公文檔（自動分析）
+            </label>
+            <span class="text-[10px] bg-teal-100 text-teal-800 px-2 py-0.5 rounded font-bold">自動抓取案場/機關/字號</span>
+          </div>
+          <input 
+            type="file" 
+            id="form-word-file" 
+            accept=".docx" 
+            onchange="handleWordFileUpload(event)"
+            class="block w-full text-xs text-slate-600 file:mr-2.5 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-bold file:bg-teal-700 file:text-white hover:file:bg-teal-800 cursor-pointer"
+          />
+          <p id="word-parse-status" class="text-[11px] text-slate-500">選取 .docx 檔案後，系統將自動解析案場名稱、主辦機關、監造單位與字號填入下方。</p>
+        </div>
+
+        <div class="border-t border-slate-200 pt-2">
+          <div class="text-[11px] font-bold text-slate-400 mb-2">步驟 2：確認或微調下方自動辨識資料</div>
+        </div>
+
+        <!-- 所屬案場選擇與自訂輸入 -->
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">所屬案場 * <span class="text-slate-400 font-normal">（可自動辨識，亦可手動修改）</span></label>
+          <div class="flex gap-2">
+            <select id="form-project-select" class="w-1/2 p-2 border border-slate-300 rounded-lg text-xs"></select>
+            <input 
+              type="text" 
+              id="form-project-new" 
+              placeholder="或自動帶入 / 手動輸入新案場..." 
+              class="w-1/2 p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-teal-600 font-semibold text-teal-900"
+            />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">公文字號 *</label>
+            <input type="text" id="form-doc-code" required placeholder="例: 南市工管字第11500號" class="w-full p-2 border border-slate-300 rounded-lg font-mono">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">發文日期 *</label>
+            <input type="date" id="form-doc-date" required class="w-full p-2 border border-slate-300 rounded-lg">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">發文單位（主辦/委辦機關）</label>
+            <input type="text" id="form-sender" placeholder="例: 臺南市政府工務局" class="w-full p-2 border border-slate-300 rounded-lg">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">受文單位（營造/監造單位）</label>
+            <input type="text" id="form-receiver" placeholder="例: 翔奕營造有限公司" class="w-full p-2 border border-slate-300 rounded-lg">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">公文類別</label>
+            <select id="form-type" class="w-full p-2 border border-slate-300 rounded-lg font-semibold">
+              <option value="函">函</option>
+              <option value="書函">書函</option>
+              <option value="開工/變更報備">開工/變更報備</option>
+              <option value="審查意見書">審查意見書</option>
+              <option value="會議紀錄">會議紀錄</option>
+              <option value="工務通報">工務通報</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">速別</label>
+            <select id="form-urgency" class="w-full p-2 border border-slate-300 rounded-lg font-semibold">
+              <option value="普通件">普通件</option>
+              <option value="速件">速件</option>
+              <option value="最速件">最速件</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">公文主旨 *</label>
+          <textarea id="form-subject" required rows="2" placeholder="請輸入公文主旨..." class="w-full p-2 border border-slate-300 rounded-lg"></textarea>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal()" class="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg">取消</button>
+          <button type="submit" id="submit-btn" class="px-4 py-1.5 bg-teal-800 hover:bg-teal-900 text-white font-bold rounded-lg shadow flex items-center gap-1.5">
+            <span>確認上傳至雲端</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // 您的 Google Apps Script Web App URL
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyKvxFSqn9gfmF78fjnk5jeSnmPECx2ulnNlqmf-Um4jjKaBmYovA48YIO0EdMJkYn-/exec";
+
+    // 公文類別專屬配色表
+    const categoryColors = {
+      '函': { bg: '#1D4ED8', text: '#ffffff' },          // 寶藍
+      '書函': { bg: '#0284C7', text: '#ffffff' },        // 天青藍
+      '開工/變更報備': { bg: '#D97706', text: '#ffffff' }, // 琥珀橙
+      '審查意見書': { bg: '#BE185D', text: '#ffffff' },   // 玫瑰紫紅
+      '會議紀錄': { bg: '#7C3AED', text: '#ffffff' },     // 紫羅蘭
+      '工務通報': { bg: '#059669', text: '#ffffff' }      // 工務綠
+    };
+
+    // 預設示範資料
+    const initialDocuments = [
+      {
+        id: "doc-1",
+        code: "南市工管字第1150032901號",
+        project: "七股區圖書館耐震補強工程",
+        date: "2026-03-12",
+        sender: "臺南市政府工務局",
+        receiver: "翔奕營造有限公司",
+        type: "函",
+        urgency: "最速件",
+        subject: "有關貴公司承攬「七股區圖書館耐震補強工程」擴柱植筋工法抽檢備查一案，請查照辦理。",
+        wordFileName: "七股圖書館_擴柱植筋工法抽查改善函.docx",
+        wordHtml: `
+          <h1>臺南市政府工務局 函</h1>
+          <p><strong>受文者：</strong>翔奕營造有限公司</p>
+          <p><strong>發文日期：</strong>中華民國115年3月12日<br><strong>發文字號：</strong>南市工管字第1150032901號<br><strong>速別：</strong>最速件</p>
+          <hr style="margin: 10px 0;">
+          <p><strong>主旨：</strong>有關貴公司承攬「七股區圖書館耐震補強工程」擴柱植筋工法抽檢備查一案，請查照辦理。</p>
+          <p><strong>說明：</strong></p>
+          <ol>
+            <li>依據公共工程耐震補強施工品質查驗要點辦理。</li>
+            <li>經會同建築師事務所查驗工區現場擴柱化學植筋拉拔試驗，結果符合設計要求規範。</li>
+            <li>請於文到五日內將正式試驗報告書彙編五份送局備查。</li>
+          </ol>
+        `,
+        wordRawText: "臺南市政府工務局 函 翔奕營造有限公司 七股區圖書館耐震補強工程 擴柱植筋 化學植筋拉拔試驗 建築師事務所",
+        wordFileUrl: ""
+      },
+      {
+        id: "doc-2",
+        code: "南化所經字第1150014820號",
+        project: "南化區北寮里活動中心耐震補強工程",
+        date: "2026-03-05",
+        sender: "臺南市南化區公所",
+        receiver: "翔奕營造有限公司",
+        type: "會議紀錄",
+        urgency: "普通件",
+        subject: "檢送「南化區北寮里活動中心耐震補強工程」第2次工務協調會議紀錄一份，請查照並配合辦理。",
+        wordFileName: "北寮活動中心_工務協調會議紀錄.docx",
+        wordHtml: `
+          <h1>南化區北寮里活動中心工務協調會議紀錄</h1>
+          <p><strong>會議時間：</strong>中華民國115年3月3日 下午2時<br><strong>地點：</strong>北寮里活動中心會議室</p>
+          <p><strong>決議事項摘要：</strong></p>
+          <table>
+            <tr><th>項次</th><th>討論決議事項</th><th>主辦人員</th></tr>
+            <tr><td>1</td><td>工區進出大型吊車與鷹架搬運應避開里民晨間活動時段。</td><td>工地主任 盧明君</td></tr>
+            <tr><td>2</td><td>後方擋土結構開挖防汛砂包堆疊落實。</td><td>工務組 林智宇</td></tr>
+          </table>
+        `,
+        wordRawText: "南化區公所 北寮里活動中心工務協調會議紀錄 鷹架搬運 盧明君 林智宇 擋土結構",
+        wordFileUrl: ""
+      }
+    ];
+
+    let documents = JSON.parse(localStorage.getItem('XIANGYI_CLOUD_DOCS_STORE')) || initialDocuments;
+    let selectedProject = "ALL";
+    let pendingWordData = null;
+
+    // 從 Google Apps Script 載入最新雲端公文清單
+    async function loadFromCloud(isManual = false) {
+      const statusEl = document.getElementById('cloud-status-text');
+      statusEl.innerText = "正在從 Google 雲端同步最新資料庫...";
+      try {
+        const res = await fetch(APPS_SCRIPT_URL);
+        const json = await res.json();
+        if (json && json.status === "success" && Array.isArray(json.data) && json.data.length > 0) {
+          documents = json.data;
+          saveToStorage();
+          renderProjectTabs();
+          updateStats();
+          renderDocList();
+          statusEl.innerText = `同步成功！已連線 Google 試算表（共 ${documents.length} 筆公文）`;
+          if (isManual) alert('已成功從雲端同步最新公文！');
+        } else {
+          statusEl.innerText = "雲端目前尚無公文資料，顯示本地快取。";
+        }
+      } catch (err) {
+        console.warn("雲端同步失敗，切換為本地離線模式：", err);
+        statusEl.innerText = "雲端連線逾時，目前使用本地暫存離線模式。";
+      }
+    }
+
+    function getProjectsList() {
+      const projects = new Set();
+      documents.forEach(d => { if (d.project) projects.add(d.project); });
+      return Array.from(projects);
+    }
+
+    function saveToStorage() {
+      try {
+        localStorage.setItem('XIANGYI_CLOUD_DOCS_STORE', JSON.stringify(documents));
+      } catch (e) {
+        console.warn("本機儲存空間限制", e);
+      }
+    }
+
+    function renderProjectTabs() {
+      const projects = getProjectsList();
+      const container = document.getElementById('project-tabs');
+      
+      let html = `
+        <button onclick="filterByProject('ALL')" 
+          class="px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition ${
+            selectedProject === 'ALL' 
+            ? 'text-white shadow-sm' 
+            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }" style="${selectedProject === 'ALL' ? 'background-color:#6FB7B7;' : ''}">
+          全部案場 (${documents.length})
+        </button>
+      `;
+
+      projects.forEach(p => {
+        const count = documents.filter(d => d.project === p).length;
+        const isActive = selectedProject === p;
+        html += `
+          <button onclick="filterByProject('${p}')" 
+            class="px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition ${
+              isActive 
+              ? 'text-white shadow-sm' 
+              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+            }" style="${isActive ? 'background-color:#6FB7B7;' : ''}">
+            ${p} (${count})
+          </button>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function updateStats() {
+      const projects = getProjectsList();
+      document.getElementById('stat-projects-count').textContent = projects.length;
+      document.getElementById('stat-docs-count').textContent = documents.length;
+      document.getElementById('stat-word-count').textContent = documents.filter(d => d.wordFileName).length;
+      document.getElementById('stat-normal-count').textContent = documents.filter(d => d.urgency === '普通件').length;
+      document.getElementById('stat-urgent-count').textContent = documents.filter(d => d.urgency === '最速件' || d.urgency === '速件').length;
+    }
+
+    function filterByProject(proj) {
+      selectedProject = proj;
+      renderProjectTabs();
+      renderDocList();
+    }
+
+    function promptNewProject() {
+      const name = prompt("請輸入全新案場名稱（例：台南水資源中心新建工程）：");
+      if (name && name.trim()) {
+        const clean = name.trim();
+        const projects = getProjectsList();
+        if (!projects.includes(clean)) {
+          const newDoc = {
+            id: "doc-" + Date.now(),
+            code: "立案字第" + Math.floor(1000 + Math.random()*9000) + "號",
+            project: clean,
+            date: new Date().toISOString().split('T')[0],
+            sender: "內部立案",
+            receiver: "翔奕營造有限公司",
+            type: "工務通報",
+            urgency: "普通件",
+            subject: `「${clean}」案場建立與前期備查作業。`,
+            wordFileName: "",
+            wordHtml: '<p class="text-slate-400 italic">本案場建立紀錄，無附加 Word 檔。</p>',
+            wordRawText: clean,
+            wordFileUrl: ""
+          };
+          documents.unshift(newDoc);
+          saveToStorage();
+          // 同步至雲端
+          fetch(APPS_SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newDoc)
+          });
+        }
+        selectedProject = clean;
+        renderProjectTabs();
+        updateStats();
+        renderDocList();
+      }
+    }
+
+    function renderDocList() {
+      const search = document.getElementById('search-input').value.toLowerCase().trim();
+      const type = document.getElementById('filter-type').value;
+      const urgency = document.getElementById('filter-urgency').value;
+      const sort = document.getElementById('filter-sort').value;
+
+      let filtered = documents.filter(doc => {
+        if (selectedProject !== "ALL" && doc.project !== selectedProject) return false;
+        if (type !== "ALL" && doc.type !== type) return false;
+        if (urgency !== "ALL" && doc.urgency !== urgency) return false;
+        if (search) {
+          const matchCode = doc.code?.toLowerCase().includes(search);
+          const matchSubject = doc.subject?.toLowerCase().includes(search);
+          const matchProject = doc.project?.toLowerCase().includes(search);
+          const matchSender = doc.sender?.toLowerCase().includes(search);
+          const matchReceiver = doc.receiver?.toLowerCase().includes(search);
+          const matchWord = doc.wordRawText?.toLowerCase().includes(search);
+          if (!matchCode && !matchSubject && !matchProject && !matchSender && !matchReceiver && !matchWord) return false;
+        }
+        return true;
+      });
+
+      filtered.sort((a, b) => {
+        if (sort === 'date-desc') return new Date(b.date) - new Date(a.date);
+        return new Date(a.date) - new Date(b.date);
+      });
+
+      const tbody = document.getElementById('document-table-body');
+      const emptyState = document.getElementById('empty-state');
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+      emptyState.classList.add('hidden');
+
+      tbody.innerHTML = filtered.map(doc => {
+        const catColor = categoryColors[doc.type] || { bg: '#475569', text: '#ffffff' };
+        const catBadge = `<span class="px-2 py-0.5 rounded text-[11px] font-bold shadow-xs whitespace-nowrap" style="background-color:${catColor.bg}; color:${catColor.text};">${doc.type}</span>`;
+
+        let urgBadge = '';
+        if (doc.urgency === '最速件') {
+          urgBadge = `<span class="ml-1 px-1.5 py-0.5 rounded text-[10px] bg-red-600 text-white font-bold whitespace-nowrap">最速件</span>`;
+        } else if (doc.urgency === '速件') {
+          urgBadge = `<span class="ml-1 px-1.5 py-0.5 rounded text-[10px] bg-amber-500 text-white font-bold whitespace-nowrap">速件</span>`;
+        } else {
+          urgBadge = `<span class="ml-1 px-1.5 py-0.5 rounded text-[10px] bg-urgency-normal font-bold whitespace-nowrap">普通件</span>`;
+        }
+
+        return `
+          <tr class="hover:bg-teal-50/40 transition cursor-pointer" onclick="openDocDrawer('${doc.id}')">
+            <td class="py-2.5 px-3 font-semibold text-slate-800 truncate" title="${doc.code}">${doc.code}</td>
+            <td class="py-2.5 px-3">
+              <span class="inline-block text-white px-2 py-0.5 rounded text-[11px] font-bold truncate max-w-full" style="background-color:#6FB7B7;" title="${doc.project}">
+                ${doc.project}
+              </span>
+            </td>
+            <td class="py-2.5 px-3 truncate text-slate-700" title="${doc.subject}">${doc.subject}</td>
+            <td class="py-2.5 px-3 whitespace-nowrap">
+              ${catBadge} ${urgBadge}
+            </td>
+            <td class="py-2.5 px-3 text-slate-500 whitespace-nowrap font-mono text-xs">${doc.date}</td>
+            <td class="py-2.5 px-3 whitespace-nowrap">
+              ${doc.wordFileName ? `
+                <span class="inline-flex items-center gap-1 text-white px-2 py-0.5 rounded text-[11px] font-bold shadow-xs truncate max-w-[170px]" style="background-color:#004B97;" title="${doc.wordFileName}">
+                  <i data-lucide="file-check" class="w-3 h-3 flex-shrink-0"></i> ${doc.wordFileName}
+                </span>
+              ` : '<span class="text-slate-400 text-xs">無 Word 檔</span>'}
+            </td>
+            <td class="py-2.5 px-3 text-center whitespace-nowrap" onclick="event.stopPropagation()">
+              <button onclick="openDocDrawer('${doc.id}')" class="text-teal-700 hover:text-teal-900 font-bold text-xs mr-2">檢視</button>
+              <button onclick="deleteDoc('${doc.id}')" class="text-red-500 hover:text-red-700 text-xs font-semibold">刪除</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    // 自動辨識 Word 檔案內容
+    function autoParseDocumentContent(rawText, fileName) {
+      let extracted = { project: '', code: '', date: '', sender: '', receiver: '', type: '', urgency: '', subject: '' };
+
+      const codeMatch = rawText.match(/(?:發文字號|字號)[：:\s]*([^\r\n，,。]+?[號號])/);
+      if (codeMatch) extracted.code = codeMatch[1].trim();
+
+      const rocDateMatch = rawText.match(/(?:發文日期[：:\s]*)?(?:中華民國)?\s*(\d{2,3})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日/);
+      if (rocDateMatch) {
+        const westernYear = parseInt(rocDateMatch[1], 10) + 1911;
+        extracted.date = `${westernYear}-${String(rocDateMatch[2]).padStart(2, '0')}-${String(rocDateMatch[3]).padStart(2, '0')}`;
+      } else {
+        const standardDateMatch = rawText.match(/(?:發文日期[：:\s]*)?(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+        if (standardDateMatch) {
+          extracted.date = `${standardDateMatch[1]}-${String(standardDateMatch[2]).padStart(2, '0')}-${String(standardDateMatch[3]).padStart(2, '0')}`;
+        }
+      }
+
+      const receiverMatch = rawText.match(/(?:受文者|受文單位)[：:\s]*([^\r\n，,。]+)/);
+      if (receiverMatch) extracted.receiver = receiverMatch[1].trim();
+
+      const senderExplicit = rawText.match(/(?:發文者|發文機關|主辦機關|主辦單位)[：:\s]*([^\r\n，,。]+)/);
+      if (senderExplicit) {
+        extracted.sender = senderExplicit[1].trim();
+      } else {
+        const senderHeaderMatch = rawText.substring(0, 150).match(/([\u4e00-\u9fa5]{2,15}(?:政府|工務局|水利局|局|公所|學校|處|委員會|顧問股份有限公司|工程司|營造))/);
+        if (senderHeaderMatch) extracted.sender = senderHeaderMatch[1].trim();
+      }
+
+      const supervisorMatch = rawText.match(/(?:監造單位|監造人|監造廠商)[：:\s]*([^\r\n，,。]+)/);
+      if (supervisorMatch && !extracted.receiver) {
+        extracted.receiver = supervisorMatch[1].trim();
+      }
+
+      if (rawText.includes("最速件")) extracted.urgency = "最速件";
+      else if (rawText.includes("速件")) extracted.urgency = "速件";
+      else if (rawText.includes("普通件")) extracted.urgency = "普通件";
+
+      if (rawText.includes("會議紀錄") || fileName.includes("會議紀錄")) extracted.type = "會議紀錄";
+      else if (rawText.includes("工務通報") || fileName.includes("工務通報")) extracted.type = "工務通報";
+      else if (rawText.includes("開工") || rawText.includes("變更報備")) extracted.type = "開工/變更報備";
+      else if (rawText.includes("審查意見")) extracted.type = "審查意見書";
+      else if (rawText.includes("書函")) extracted.type = "書函";
+      else if (rawText.includes("函")) extracted.type = "函";
+
+      const subjectMatch = rawText.match(/(?:主旨|案由)[：:\s]*([\s\S]+?)(?=(?:說明|依據|正本|副本|\r?\n\r?\n))/);
+      if (subjectMatch) extracted.subject = subjectMatch[1].replace(/\s+/g, ' ').trim();
+
+      const projectMatchQuote = rawText.match(/[「『]([^\r\n」』]+?(?:工程|大樓|中心|廠房|園區|案|新建|補強))[」』]/);
+      if (projectMatchQuote) {
+        extracted.project = projectMatchQuote[1].trim();
+      } else {
+        const projectMatchGeneral = (extracted.subject + " " + fileName).match(/([^\s，,。]+?(?:工程|大樓|中心|圖書館|活動中心|園區))/);
+        if (projectMatchGeneral) {
+          extracted.project = projectMatchGeneral[1].replace(/^[檢有關檢送依據貴公司承攬「『]*/, '').trim();
+        }
+      }
+
+      return extracted;
+    }
+
+    // 處理 Word 上傳
+    function handleWordFileUpload(event) {
+      const file = event.target.files[0];
+      const status = document.getElementById('word-parse-status');
+      if (!file) { pendingWordData = null; return; }
+
+      if (!file.name.endsWith('.docx')) {
+        alert('請上傳 .docx 格式的 Word 檔案！');
+        event.target.value = '';
+        return;
+      }
+
+      status.innerHTML = `<span class="text-teal-700 font-bold animate-pulse">正在精準解析 Word 內容並提取案場、機關與字號...</span>`;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const arrayBuffer = e.target.result;
+        mammoth.convertToHtml({ arrayBuffer: arrayBuffer })
+          .then(function(resultHtml) {
+            mammoth.extractRawText({ arrayBuffer: arrayBuffer })
+              .then(function(resultText) {
+                const blobReader = new FileReader();
+                blobReader.onloadend = function() {
+                  const rawText = resultText.value;
+                  pendingWordData = {
+                    fileName: file.name,
+                    html: resultHtml.value,
+                    rawText: rawText,
+                    dataUrl: blobReader.result
+                  };
+
+                  const parsed = autoParseDocumentContent(rawText, file.name);
+
+                  if (parsed.code) document.getElementById('form-doc-code').value = parsed.code;
+                  if (parsed.date) document.getElementById('form-doc-date').value = parsed.date;
+                  if (parsed.sender) document.getElementById('form-sender').value = parsed.sender;
+                  if (parsed.receiver) document.getElementById('form-receiver').value = parsed.receiver;
+                  if (parsed.urgency) document.getElementById('form-urgency').value = parsed.urgency;
+                  if (parsed.type) document.getElementById('form-type').value = parsed.type;
+                  if (parsed.subject) document.getElementById('form-subject').value = parsed.subject;
+
+                  if (parsed.project) {
+                    const select = document.getElementById('form-project-select');
+                    let foundOption = false;
+                    for (let i = 0; i < select.options.length; i++) {
+                      if (select.options[i].value && (select.options[i].value === parsed.project || parsed.project.includes(select.options[i].value))) {
+                        select.selectedIndex = i;
+                        foundOption = true;
+                        break;
+                      }
+                    }
+                    if (!foundOption) {
+                      select.value = "";
+                      document.getElementById('form-project-new').value = parsed.project;
+                    }
+                  }
+
+                  status.innerHTML = `
+                    <span class="text-emerald-700 font-bold flex items-center gap-1">
+                      <i data-lucide="check-circle" class="w-4 h-4"></i> 
+                      辨識成功！已自動填入案場：${parsed.project || '請確認'}、主辦/監造機關與字號。
+                    </span>
+                  `;
+                  lucide.createIcons();
+                };
+                blobReader.readAsDataURL(file);
+              });
+          })
+          .catch(function(err) {
+            console.error(err);
+            status.innerHTML = `<span class="text-red-500 font-bold">Word 解析失敗，請確認檔案正常。</span>`;
+          });
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // 儲存公文並即時同步至雲端
+    async function handleFormSubmit(e) {
+      e.preventDefault();
+      const newProj = document.getElementById('form-project-new').value.trim();
+      const selProj = document.getElementById('form-project-select').value;
+      const project = newProj || selProj;
+
+      if (!project) {
+        alert('請確認所屬案場！');
+        return;
+      }
+
+      const submitBtn = document.getElementById('submit-btn');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<span>正在同步至雲端...</span>`;
+
+      const newDoc = {
+        id: "doc-" + Date.now(),
+        code: document.getElementById('form-doc-code').value.trim(),
+        project: project,
+        date: document.getElementById('form-doc-date').value,
+        sender: document.getElementById('form-sender').value.trim() || "未載明",
+        receiver: document.getElementById('form-receiver').value.trim() || "翔奕營造有限公司",
+        type: document.getElementById('form-type').value,
+        urgency: document.getElementById('form-urgency').value,
+        subject: document.getElementById('form-subject').value.trim(),
+        wordFileName: pendingWordData ? pendingWordData.fileName : "",
+        wordHtml: pendingWordData ? pendingWordData.html : '<p class="text-slate-400 italic">本公文未附加 Word 檔案。</p>',
+        wordRawText: pendingWordData ? pendingWordData.rawText : '',
+        wordDataBase64: pendingWordData ? pendingWordData.dataUrl : "",
+        wordFileUrl: ""
+      };
+
+      // 1. 立即更新本機畫面
+      documents.unshift(newDoc);
+      saveToStorage();
+      renderProjectTabs();
+      updateStats();
+      renderDocList();
+
+      // 2. 同步發送到 Google Apps Script 雲端
+      try {
+        await fetch(APPS_SCRIPT_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newDoc)
+        });
+        document.getElementById('cloud-status-text').innerText = `公文「${newDoc.code}」已成功同步至 Google 雲端試算表！`;
+      } catch (err) {
+        console.error("雲端上傳失敗：", err);
+      }
+
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `<span>確認上傳至雲端</span>`;
+      closeModal();
+      alert(`公文已成功歸入「${project}」案場，並完成雲端同步！`);
+    }
+
+    function deleteDoc(id) {
+      if (confirm('確定要刪除這筆公文資料嗎？')) {
+        documents = documents.filter(d => d.id !== id);
+        saveToStorage();
+        renderProjectTabs();
+        updateStats();
+        renderDocList();
+      }
+    }
+
+    function openDocDrawer(id) {
+      const doc = documents.find(d => d.id === id);
+      if (!doc) return;
+
+      document.getElementById('drawer-code').textContent = doc.code;
+      document.getElementById('drawer-subject').textContent = doc.subject;
+      document.getElementById('drawer-project').textContent = doc.project;
+      document.getElementById('drawer-date').textContent = doc.date;
+      document.getElementById('drawer-sender').textContent = doc.sender;
+      document.getElementById('drawer-receiver').textContent = doc.receiver;
+
+      const catColor = categoryColors[doc.type] || { bg: '#475569', text: '#ffffff' };
+      const catBadge = document.getElementById('drawer-type-badge');
+      catBadge.textContent = doc.type;
+      catBadge.style.backgroundColor = catColor.bg;
+      catBadge.style.color = catColor.text;
+
+      const urgBadge = document.getElementById('drawer-urgency-badge');
+      urgBadge.textContent = doc.urgency;
+      if (doc.urgency === '最速件') urgBadge.style.backgroundColor = '#dc2626';
+      else if (doc.urgency === '速件') urgBadge.style.backgroundColor = '#f59e0b';
+      else urgBadge.style.backgroundColor = '#9999CC';
+
+      document.getElementById('drawer-word-preview').innerHTML = doc.wordHtml || '<p class="text-slate-400 italic">無 Word 內容</p>';
+
+      const downloadContainer = document.getElementById('drawer-download-container');
+      if (doc.wordFileName) {
+        downloadContainer.innerHTML = `
+          <button onclick="downloadWordFile('${doc.id}')" class="flex items-center gap-1.5 px-3 py-1 bg-word-theme hover:opacity-90 text-white rounded text-xs font-bold shadow transition">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i> 下載 Word 正本
+          </button>
+        `;
+      } else {
+        downloadContainer.innerHTML = '';
+      }
+
+      document.getElementById('detail-drawer').classList.remove('translate-x-full');
+      document.getElementById('drawer-backdrop').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeDrawer() {
+      document.getElementById('detail-drawer').classList.add('translate-x-full');
+      document.getElementById('drawer-backdrop').classList.add('hidden');
+    }
+
+    function downloadWordFile(id) {
+      const doc = documents.find(d => d.id === id);
+      if (!doc) return;
+      if (doc.wordFileUrl) {
+        window.open(doc.wordFileUrl, '_blank');
+      } else if (doc.wordDataBase64) {
+        const a = document.createElement('a');
+        a.href = doc.wordDataBase64;
+        a.download = doc.wordFileName || '公文.docx';
+        a.click();
+      } else {
+        const blob = new Blob([doc.wordRawText || doc.subject], { type: 'application/msword' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = doc.wordFileName || '公文.doc';
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    }
+
+    function openModal() {
+      pendingWordData = null;
+      document.getElementById('doc-form').reset();
+      document.getElementById('form-doc-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('form-receiver').value = "翔奕營造有限公司";
+      document.getElementById('word-parse-status').innerHTML = '選取 .docx 檔案後，系統將自動解析案場名稱、主辦機關、監造單位與字號填入下方。';
+
+      const select = document.getElementById('form-project-select');
+      const projects = getProjectsList();
+      select.innerHTML = '<option value="">-- 請選擇既有案場 --</option>' + 
+        projects.map(p => `<option value="${p}">${p}</option>`).join('');
+
+      document.getElementById('upload-modal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('upload-modal').classList.add('hidden');
+    }
+
+    function exportCSV() {
+      const rows = [
+        ["公文字號", "案場名稱", "主旨", "類別", "速別", "發文日期", "發文單位", "受文單位", "Word檔名", "雲端檔案網址"]
+      ];
+      documents.forEach(d => {
+        rows.push([
+          `"${d.code}"`,
+          `"${d.project}"`,
+          `"${d.subject.replace(/"/g, '""')}"`,
+          `"${d.type}"`,
+          `"${d.urgency}"`,
+          `"${d.date}"`,
+          `"${d.sender}"`,
+          `"${d.receiver}"`,
+          `"${d.wordFileName || ''}"`,
+          `"${d.wordFileUrl || ''}"`
+        ]);
+      });
+      const csvContent = "\uFEFF" + rows.map(e => e.join(",")).join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `翔奕營造_案場公文清單_${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // 表格欄位拖曳拉寬
+    function initColumnResizers() {
+      const table = document.getElementById('doc-table');
+      if (!table) return;
+      table.querySelectorAll('.resizable-th').forEach(th => {
+        const resizer = th.querySelector('.col-resizer');
+        if (!resizer) return;
+        let startX = 0;
+        let startWidth = 0;
+
+        resizer.addEventListener('mousedown', function(e) {
+          startX = e.clientX;
+          startWidth = th.offsetWidth;
+          resizer.classList.add('resizing');
+
+          function onMouseMove(e2) {
+            const newWidth = startWidth + (e2.clientX - startX);
+            if (newWidth > 70) {
+              th.style.width = newWidth + 'px';
+            }
+          }
+
+          function onMouseUp() {
+            resizer.classList.remove('resizing');
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+          }
+
+          document.addEventListener('mousemove', onMouseMove);
+          document.addEventListener('mouseup', onMouseUp);
+          e.stopPropagation();
+        });
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      renderProjectTabs();
+      updateStats();
+      renderDocList();
+      initColumnResizers();
+      lucide.createIcons();
+      // 開啟時自動向 Google 雲端拉取最新資料
+      loadFromCloud();
+    });
+  </script>
+</body>
+</html>
