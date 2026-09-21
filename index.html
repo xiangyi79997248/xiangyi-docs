@@ -94,9 +94,9 @@
         <div>
           <div class="flex items-center gap-2">
             <h1 class="font-bold text-xl tracking-wider leading-none">翔奕營造</h1>
-            <span class="text-[11px] bg-white/20 px-2 py-0.5 rounded font-semibold tracking-normal">公文管理系統（雲端版）</span>
+            <span class="text-[11px] bg-white/20 px-2 py-0.5 rounded font-semibold tracking-normal">公文管理系統（多檔雲端版）</span>
           </div>
-          <p class="text-xs text-teal-100 mt-1">工程案場公文收發、Word (.docx) 自動擷取與多人即時雲端同步</p>
+          <p class="text-xs text-teal-100 mt-1">工程案場公文收發、Word (.docx) 批次自動擷取與多人即時雲端同步</p>
         </div>
       </div>
 
@@ -108,9 +108,9 @@
         <button onclick="exportCSV()" class="flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm bg-teal-900/70 hover:bg-teal-800 rounded border border-teal-600 transition text-white">
           <i data-lucide="download" class="w-4 h-4"></i> 匯出總表
         </button>
-        <!-- 上傳公文按鈕 -->
+        <!-- 上傳多個公文按鈕 -->
         <button onclick="openModal()" class="flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold rounded-lg shadow transition">
-          <i data-lucide="file-plus-2" class="w-4 h-4"></i> 上傳公文 (Word)
+          <i data-lucide="file-plus-2" class="w-4 h-4"></i> 批次上傳公文 (Word)
         </button>
       </div>
     </div>
@@ -123,7 +123,7 @@
         <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
         <span>☁️ <strong>雲端狀態：</strong><span id="cloud-status-text">就緒（已連接 Google 試算表與雲端硬碟）</span></span>
       </div>
-      <span class="text-[11px] text-teal-700">任何終端設備上傳將立即同步至公司資料庫</span>
+      <span class="text-[11px] text-teal-700">支援同時選取多份 Word 檔批次上傳辨識</span>
     </div>
   </div>
 
@@ -297,110 +297,63 @@
   </div>
   <div id="drawer-backdrop" onclick="closeDrawer()" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden"></div>
 
-  <!-- 上傳公文 (Word) Modal -->
+  <!-- 批次上傳多份公文 (Word) Modal -->
   <div id="upload-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl overflow-y-auto max-h-[92vh]">
+    <div class="bg-white rounded-2xl max-w-3xl w-full p-5 shadow-2xl overflow-y-auto max-h-[92vh]">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100">
         <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
-          <i data-lucide="cloud-upload" class="w-5 h-5 text-teal-700"></i> 上傳公文並同步至雲端硬碟
+          <i data-lucide="cloud-upload" class="w-5 h-5 text-teal-700"></i> 批次上傳 Word 公文與多檔自動辨識
         </h3>
         <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
       </div>
 
-      <form id="doc-form" onsubmit="handleFormSubmit(event)" class="space-y-3.5 mt-3.5 text-xs">
+      <div class="space-y-4 mt-3 text-xs">
         
-        <!-- 檔案上傳區塊（優先自動辨識） -->
-        <div class="p-3 bg-gradient-to-r from-blue-50 to-teal-50/60 border-2 border-dashed border-teal-400 rounded-xl space-y-1.5">
+        <!-- 多檔選取區塊 (可多選 multiple) -->
+        <div class="p-3.5 bg-gradient-to-r from-blue-50 to-teal-50/70 border-2 border-dashed border-teal-500 rounded-xl space-y-2">
           <div class="flex items-center justify-between">
             <label class="font-bold text-teal-950 flex items-center gap-1.5 text-sm">
-              <i data-lucide="sparkles" class="w-4 h-4 text-amber-500"></i> 步驟 1：選擇 Word 公文檔（自動分析）
+              <i data-lucide="files" class="w-4 h-4 text-amber-500"></i> 選擇一至多份 Word 公文檔 (.docx)
             </label>
-            <span class="text-[10px] bg-teal-100 text-teal-800 px-2 py-0.5 rounded font-bold">自動抓取案場/機關/字號</span>
+            <span class="text-[10px] bg-teal-100 text-teal-800 px-2 py-0.5 rounded font-bold">按住 Ctrl/Cmd 可多選檔案</span>
           </div>
           <input 
             type="file" 
-            id="form-word-file" 
+            id="form-word-multiple-files" 
             accept=".docx" 
-            onchange="handleWordFileUpload(event)"
-            class="block w-full text-xs text-slate-600 file:mr-2.5 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-bold file:bg-teal-700 file:text-white hover:file:bg-teal-800 cursor-pointer"
+            multiple
+            onchange="handleMultipleWordFiles(event)"
+            class="block w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-bold file:bg-teal-700 file:text-white hover:file:bg-teal-800 cursor-pointer"
           />
-          <p id="word-parse-status" class="text-[11px] text-slate-500">選取 .docx 檔案後，系統將自動解析案場名稱、主辦機關、監造單位與字號填入下方。</p>
+          <p id="multi-parse-status" class="text-[11px] text-slate-500">可一次拖曳或選取多個檔案，系統將自動逐一提取各公文字號、主旨、主辦機關、監造與案場。</p>
         </div>
 
-        <div class="border-t border-slate-200 pt-2">
-          <div class="text-[11px] font-bold text-slate-400 mb-2">步驟 2：確認或微調下方自動辨識資料</div>
-        </div>
-
-        <!-- 所屬案場選擇與自訂輸入 -->
+        <!-- 批次辨識結果卡片清單 -->
         <div>
-          <label class="block font-bold text-slate-700 mb-1">所屬案場 * <span class="text-slate-400 font-normal">（可自動辨識，亦可手動修改）</span></label>
-          <div class="flex gap-2">
-            <select id="form-project-select" class="w-1/2 p-2 border border-slate-300 rounded-lg text-xs"></select>
-            <input 
-              type="text" 
-              id="form-project-new" 
-              placeholder="或自動帶入 / 手動輸入新案場..." 
-              class="w-1/2 p-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-teal-600 font-semibold text-teal-900"
-            />
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="font-bold text-slate-700 flex items-center gap-1">
+              <span>待確認上傳清單</span>
+              <span id="batch-count-badge" class="bg-teal-100 text-teal-800 px-1.5 py-0.2 rounded text-[10px] font-bold">0 筆</span>
+            </h4>
+            <span class="text-[11px] text-slate-400">已自動擷取各檔案資訊，您可直接微調各欄位</span>
+          </div>
+          
+          <div id="batch-items-container" class="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+            <div class="py-8 text-center text-slate-400 bg-slate-50 border border-slate-200 rounded-xl">
+              <i data-lucide="file-up" class="w-8 h-8 mx-auto mb-1 text-slate-300"></i>
+              請先於上方選取一至多個 Word 檔案 (.docx)
+            </div>
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-2.5">
-          <div>
-            <label class="block font-bold text-slate-700 mb-1">公文字號 *</label>
-            <input type="text" id="form-doc-code" required placeholder="例: 南市工管字第11500號" class="w-full p-2 border border-slate-300 rounded-lg font-mono">
-          </div>
-          <div>
-            <label class="block font-bold text-slate-700 mb-1">發文日期 *</label>
-            <input type="date" id="form-doc-date" required class="w-full p-2 border border-slate-300 rounded-lg">
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-2.5">
-          <div>
-            <label class="block font-bold text-slate-700 mb-1">發文單位（主辦/委辦機關）</label>
-            <input type="text" id="form-sender" placeholder="例: 臺南市政府工務局" class="w-full p-2 border border-slate-300 rounded-lg">
-          </div>
-          <div>
-            <label class="block font-bold text-slate-700 mb-1">受文單位（營造/監造單位）</label>
-            <input type="text" id="form-receiver" placeholder="例: 翔奕營造有限公司" class="w-full p-2 border border-slate-300 rounded-lg">
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-2.5">
-          <div>
-            <label class="block font-bold text-slate-700 mb-1">公文類別</label>
-            <select id="form-type" class="w-full p-2 border border-slate-300 rounded-lg font-semibold">
-              <option value="函">函</option>
-              <option value="書函">書函</option>
-              <option value="開工/變更報備">開工/變更報備</option>
-              <option value="審查意見書">審查意見書</option>
-              <option value="會議紀錄">會議紀錄</option>
-              <option value="工務通報">工務通報</option>
-            </select>
-          </div>
-          <div>
-            <label class="block font-bold text-slate-700 mb-1">速別</label>
-            <select id="form-urgency" class="w-full p-2 border border-slate-300 rounded-lg font-semibold">
-              <option value="普通件">普通件</option>
-              <option value="速件">速件</option>
-              <option value="最速件">最速件</option>
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">公文主旨 *</label>
-          <textarea id="form-subject" required rows="2" placeholder="請輸入公文主旨..." class="w-full p-2 border border-slate-300 rounded-lg"></textarea>
-        </div>
-
-        <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeModal()" class="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg">取消</button>
-          <button type="submit" id="submit-btn" class="px-4 py-1.5 bg-teal-800 hover:bg-teal-900 text-white font-bold rounded-lg shadow flex items-center gap-1.5">
-            <span>確認上傳至雲端</span>
+        <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg">取消</button>
+          <button type="button" id="batch-submit-btn" onclick="submitBatchDocuments()" disabled class="px-5 py-2 bg-teal-800 hover:bg-teal-900 disabled:bg-slate-300 text-white font-bold rounded-lg shadow flex items-center gap-1.5 transition">
+            <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+            <span>一鍵全部上傳雲端</span>
           </button>
         </div>
-      </form>
+      </div>
     </div>
   </div>
 
@@ -475,7 +428,7 @@
 
     let documents = JSON.parse(localStorage.getItem('XIANGYI_CLOUD_DOCS_STORE')) || initialDocuments;
     let selectedProject = "ALL";
-    let pendingWordData = null;
+    let batchPendingList = []; // 批次上傳暫存清單
 
     // 從 Google Apps Script 載入最新雲端公文清單
     async function loadFromCloud(isManual = false) {
@@ -586,7 +539,6 @@
           };
           documents.unshift(newDoc);
           saveToStorage();
-          // 同步至雲端
           fetch(APPS_SCRIPT_URL, {
             method: "POST",
             mode: "no-cors",
@@ -682,9 +634,9 @@
       lucide.createIcons();
     }
 
-    // 自動辨識 Word 檔案內容
+    // 自動辨識 Word 檔案內容核心函數
     function autoParseDocumentContent(rawText, fileName) {
-      let extracted = { project: '', code: '', date: '', sender: '', receiver: '', type: '', urgency: '', subject: '' };
+      let extracted = { project: '', code: '', date: '', sender: '', receiver: '', type: '函', urgency: '普通件', subject: '' };
 
       const codeMatch = rawText.match(/(?:發文字號|字號)[：:\s]*([^\r\n，,。]+?[號號])/);
       if (codeMatch) extracted.code = codeMatch[1].trim();
@@ -743,139 +695,209 @@
       return extracted;
     }
 
-    // 處理 Word 上傳
-    function handleWordFileUpload(event) {
-      const file = event.target.files[0];
-      const status = document.getElementById('word-parse-status');
-      if (!file) { pendingWordData = null; return; }
+    // ==========================================
+    // 支援批次多選 Word 處理函數
+    // ==========================================
+    async function handleMultipleWordFiles(event) {
+      const files = Array.from(event.target.files);
+      const statusEl = document.getElementById('multi-parse-status');
+      const submitBtn = document.getElementById('batch-submit-btn');
+      
+      if (!files || files.length === 0) return;
 
-      if (!file.name.endsWith('.docx')) {
-        alert('請上傳 .docx 格式的 Word 檔案！');
-        event.target.value = '';
-        return;
+      statusEl.innerHTML = `<span class="text-teal-700 font-bold animate-pulse">正在批次讀取並解析 ${files.length} 份 Word 檔案內容...</span>`;
+      batchPendingList = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (!file.name.endsWith('.docx')) continue;
+
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          const resultHtml = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
+          const resultText = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+          
+          // 轉換 Base64 供雲端存檔
+          const base64Data = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(file);
+          });
+
+          const rawText = resultText.value;
+          const parsed = autoParseDocumentContent(rawText, file.name);
+
+          batchPendingList.push({
+            tempId: "temp-" + Date.now() + "-" + i,
+            fileName: file.name,
+            html: resultHtml.value,
+            rawText: rawText,
+            base64: base64Data,
+            project: parsed.project || "未指定案場",
+            code: parsed.code || "未辨識出字號",
+            date: parsed.date || new Date().toISOString().split('T')[0],
+            sender: parsed.sender || "主辦機關",
+            receiver: parsed.receiver || "翔奕營造有限公司",
+            type: parsed.type || "函",
+            urgency: parsed.urgency || "普通件",
+            subject: parsed.subject || file.name.replace('.docx', '')
+          });
+        } catch (err) {
+          console.error("解析檔案錯誤:", file.name, err);
+        }
       }
 
-      status.innerHTML = `<span class="text-teal-700 font-bold animate-pulse">正在精準解析 Word 內容並提取案場、機關與字號...</span>`;
-
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const arrayBuffer = e.target.result;
-        mammoth.convertToHtml({ arrayBuffer: arrayBuffer })
-          .then(function(resultHtml) {
-            mammoth.extractRawText({ arrayBuffer: arrayBuffer })
-              .then(function(resultText) {
-                const blobReader = new FileReader();
-                blobReader.onloadend = function() {
-                  const rawText = resultText.value;
-                  pendingWordData = {
-                    fileName: file.name,
-                    html: resultHtml.value,
-                    rawText: rawText,
-                    dataUrl: blobReader.result
-                  };
-
-                  const parsed = autoParseDocumentContent(rawText, file.name);
-
-                  if (parsed.code) document.getElementById('form-doc-code').value = parsed.code;
-                  if (parsed.date) document.getElementById('form-doc-date').value = parsed.date;
-                  if (parsed.sender) document.getElementById('form-sender').value = parsed.sender;
-                  if (parsed.receiver) document.getElementById('form-receiver').value = parsed.receiver;
-                  if (parsed.urgency) document.getElementById('form-urgency').value = parsed.urgency;
-                  if (parsed.type) document.getElementById('form-type').value = parsed.type;
-                  if (parsed.subject) document.getElementById('form-subject').value = parsed.subject;
-
-                  if (parsed.project) {
-                    const select = document.getElementById('form-project-select');
-                    let foundOption = false;
-                    for (let i = 0; i < select.options.length; i++) {
-                      if (select.options[i].value && (select.options[i].value === parsed.project || parsed.project.includes(select.options[i].value))) {
-                        select.selectedIndex = i;
-                        foundOption = true;
-                        break;
-                      }
-                    }
-                    if (!foundOption) {
-                      select.value = "";
-                      document.getElementById('form-project-new').value = parsed.project;
-                    }
-                  }
-
-                  status.innerHTML = `
-                    <span class="text-emerald-700 font-bold flex items-center gap-1">
-                      <i data-lucide="check-circle" class="w-4 h-4"></i> 
-                      辨識成功！已自動填入案場：${parsed.project || '請確認'}、主辦/監造機關與字號。
-                    </span>
-                  `;
-                  lucide.createIcons();
-                };
-                blobReader.readAsDataURL(file);
-              });
-          })
-          .catch(function(err) {
-            console.error(err);
-            status.innerHTML = `<span class="text-red-500 font-bold">Word 解析失敗，請確認檔案正常。</span>`;
-          });
-      };
-      reader.readAsArrayBuffer(file);
+      statusEl.innerHTML = `<span class="text-emerald-700 font-bold flex items-center gap-1"><i data-lucide="check-circle" class="w-4 h-4"></i> 已成功解析 ${batchPendingList.length} 份公文！請於下方確認或微調後上傳。</span>`;
+      submitBtn.disabled = batchPendingList.length === 0;
+      renderBatchItems();
+      lucide.createIcons();
     }
 
-    // 儲存公文並即時同步至雲端
-    async function handleFormSubmit(e) {
-      e.preventDefault();
-      const newProj = document.getElementById('form-project-new').value.trim();
-      const selProj = document.getElementById('form-project-select').value;
-      const project = newProj || selProj;
+    // 渲染批次待確認清單介面
+    function renderBatchItems() {
+      const container = document.getElementById('batch-items-container');
+      const countBadge = document.getElementById('batch-count-badge');
+      countBadge.innerText = `${batchPendingList.length} 筆`;
 
-      if (!project) {
-        alert('請確認所屬案場！');
+      if (batchPendingList.length === 0) {
+        container.innerHTML = `
+          <div class="py-8 text-center text-slate-400 bg-slate-50 border border-slate-200 rounded-xl">
+            <i data-lucide="file-up" class="w-8 h-8 mx-auto mb-1 text-slate-300"></i>
+            請先於上方選取一至多個 Word 檔案 (.docx)
+          </div>
+        `;
         return;
       }
 
-      const submitBtn = document.getElementById('submit-btn');
+      const projects = getProjectsList();
+
+      container.innerHTML = batchPendingList.map((item, idx) => `
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 relative hover:border-teal-400 transition space-y-2">
+          <div class="flex items-center justify-between pb-1 border-b border-slate-200">
+            <span class="inline-flex items-center gap-1 font-bold text-teal-900 truncate max-w-[85%]">
+              <i data-lucide="file-text" class="w-3.5 h-3.5 text-word-theme"></i> ${item.fileName}
+            </span>
+            <button onclick="removeBatchItem(${idx})" class="text-red-500 hover:text-red-700 font-bold text-[11px]">移除</button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div>
+              <label class="block font-bold text-slate-600 mb-0.5 text-[10px]">所屬案場</label>
+              <input type="text" value="${item.project}" oninput="updateBatchField(${idx}, 'project', this.value)" class="w-full p-1.5 bg-white border border-slate-300 rounded text-xs text-teal-900 font-bold" placeholder="案場名稱" />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-0.5 text-[10px]">公文字號</label>
+              <input type="text" value="${item.code}" oninput="updateBatchField(${idx}, 'code', this.value)" class="w-full p-1.5 bg-white border border-slate-300 rounded text-xs font-mono" placeholder="公文字號" />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-0.5 text-[10px]">發文日期</label>
+              <input type="date" value="${item.date}" onchange="updateBatchField(${idx}, 'date', this.value)" class="w-full p-1.5 bg-white border border-slate-300 rounded text-xs" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div>
+              <label class="block font-bold text-slate-600 mb-0.5 text-[10px]">發文單位 (主辦)</label>
+              <input type="text" value="${item.sender}" oninput="updateBatchField(${idx}, 'sender', this.value)" class="w-full p-1.5 bg-white border border-slate-300 rounded text-xs" />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-0.5 text-[10px]">受文單位 (營造/監造)</label>
+              <input type="text" value="${item.receiver}" oninput="updateBatchField(${idx}, 'receiver', this.value)" class="w-full p-1.5 bg-white border border-slate-300 rounded text-xs" />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-0.5 text-[10px]">公文類別</label>
+              <select onchange="updateBatchField(${idx}, 'type', this.value)" class="w-full p-1.5 bg-white border border-slate-300 rounded text-xs">
+                ${['函', '書函', '開工/變更報備', '審查意見書', '會議紀錄', '工務通報'].map(t => `<option value="${t}" ${item.type === t ? 'selected' : ''}>${t}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-0.5 text-[10px]">速別</label>
+              <select onchange="updateBatchField(${idx}, 'urgency', this.value)" class="w-full p-1.5 bg-white border border-slate-300 rounded text-xs">
+                ${['普通件', '速件', '最速件'].map(u => `<option value="${u}" ${item.urgency === u ? 'selected' : ''}>${u}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-600 mb-0.5 text-[10px]">公文主旨摘要</label>
+            <input type="text" value="${item.subject}" oninput="updateBatchField(${idx}, 'subject', this.value)" class="w-full p-1.5 bg-white border border-slate-300 rounded text-xs" />
+          </div>
+        </div>
+      `).join('');
+
+      lucide.createIcons();
+    }
+
+    function updateBatchField(index, field, value) {
+      if (batchPendingList[index]) {
+        batchPendingList[index][field] = value;
+      }
+    }
+
+    function removeBatchItem(index) {
+      batchPendingList.splice(index, 1);
+      document.getElementById('batch-submit-btn').disabled = batchPendingList.length === 0;
+      renderBatchItems();
+    }
+
+    // 一鍵提交批次公文並同步至 Google 雲端
+    async function submitBatchDocuments() {
+      if (batchPendingList.length === 0) return;
+
+      const submitBtn = document.getElementById('batch-submit-btn');
       submitBtn.disabled = true;
-      submitBtn.innerHTML = `<span>正在同步至雲端...</span>`;
+      submitBtn.innerHTML = `<span>正在逐筆上傳雲端 (0/${batchPendingList.length})...</span>`;
 
-      const newDoc = {
-        id: "doc-" + Date.now(),
-        code: document.getElementById('form-doc-code').value.trim(),
-        project: project,
-        date: document.getElementById('form-doc-date').value,
-        sender: document.getElementById('form-sender').value.trim() || "未載明",
-        receiver: document.getElementById('form-receiver').value.trim() || "翔奕營造有限公司",
-        type: document.getElementById('form-type').value,
-        urgency: document.getElementById('form-urgency').value,
-        subject: document.getElementById('form-subject').value.trim(),
-        wordFileName: pendingWordData ? pendingWordData.fileName : "",
-        wordHtml: pendingWordData ? pendingWordData.html : '<p class="text-slate-400 italic">本公文未附加 Word 檔案。</p>',
-        wordRawText: pendingWordData ? pendingWordData.rawText : '',
-        wordDataBase64: pendingWordData ? pendingWordData.dataUrl : "",
-        wordFileUrl: ""
-      };
+      let successCount = 0;
 
-      // 1. 立即更新本機畫面
-      documents.unshift(newDoc);
+      for (let i = 0; i < batchPendingList.length; i++) {
+        const item = batchPendingList[i];
+        submitBtn.innerHTML = `<span>正在上傳第 (${i + 1}/${batchPendingList.length}) 份...</span>`;
+
+        const newDoc = {
+          id: "doc-" + Date.now() + "-" + i,
+          code: item.code.trim() || "未命名字號",
+          project: item.project.trim() || "綜合案場",
+          date: item.date,
+          sender: item.sender.trim() || "未載明",
+          receiver: item.receiver.trim() || "翔奕營造有限公司",
+          type: item.type,
+          urgency: item.urgency,
+          subject: item.subject.trim(),
+          wordFileName: item.fileName,
+          wordHtml: item.html || '<p class="text-slate-400 italic">本公文未附加 Word 檔案。</p>',
+          wordRawText: item.rawText || '',
+          wordDataBase64: item.base64,
+          wordFileUrl: ""
+        };
+
+        // 加入本機清單
+        documents.unshift(newDoc);
+        successCount++;
+
+        // 同步發送至 Google Apps Script 後端
+        try {
+          await fetch(APPS_SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newDoc)
+          });
+        } catch (err) {
+          console.error("雲端上傳單筆失敗：", err);
+        }
+      }
+
       saveToStorage();
       renderProjectTabs();
       updateStats();
       renderDocList();
 
-      // 2. 同步發送到 Google Apps Script 雲端
-      try {
-        await fetch(APPS_SCRIPT_URL, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(newDoc)
-        });
-        document.getElementById('cloud-status-text').innerText = `公文「${newDoc.code}」已成功同步至 Google 雲端試算表！`;
-      } catch (err) {
-        console.error("雲端上傳失敗：", err);
-      }
-
+      document.getElementById('cloud-status-text').innerText = `已成功批次上傳 ${successCount} 筆公文至 Google 雲端！`;
       submitBtn.disabled = false;
-      submitBtn.innerHTML = `<span>確認上傳至雲端</span>`;
+      submitBtn.innerHTML = `<i data-lucide="upload-cloud" class="w-4 h-4"></i><span>一鍵全部上傳雲端</span>`;
       closeModal();
-      alert(`公文已成功歸入「${project}」案場，並完成雲端同步！`);
+      alert(`🎉 恭喜！共 ${successCount} 份公文與 Word 檔案已全數上傳並同步至公司雲端試算表！`);
     }
 
     function deleteDoc(id) {
@@ -956,18 +978,13 @@
     }
 
     function openModal() {
-      pendingWordData = null;
-      document.getElementById('doc-form').reset();
-      document.getElementById('form-doc-date').value = new Date().toISOString().split('T')[0];
-      document.getElementById('form-receiver').value = "翔奕營造有限公司";
-      document.getElementById('word-parse-status').innerHTML = '選取 .docx 檔案後，系統將自動解析案場名稱、主辦機關、監造單位與字號填入下方。';
-
-      const select = document.getElementById('form-project-select');
-      const projects = getProjectsList();
-      select.innerHTML = '<option value="">-- 請選擇既有案場 --</option>' + 
-        projects.map(p => `<option value="${p}">${p}</option>`).join('');
-
+      batchPendingList = [];
+      document.getElementById('form-word-multiple-files').value = '';
+      document.getElementById('multi-parse-status').innerHTML = '可一次拖曳或選取多個檔案，系統將自動逐一提取各公文字號、主旨、主辦機關、監造與案場。';
+      document.getElementById('batch-submit-btn').disabled = true;
+      renderBatchItems();
       document.getElementById('upload-modal').classList.remove('hidden');
+      lucide.createIcons();
     }
 
     function closeModal() {
