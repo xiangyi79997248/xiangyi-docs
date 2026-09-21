@@ -8,7 +8,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  <!-- Mammoth.js for Word (.docx) Parsing -->
+  <!-- Mammoth.js for Word Parsing -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
   
   <style>
@@ -78,6 +78,12 @@
     .word-preview-paper table { width: 100%; border-collapse: collapse; margin: 1.2rem 0; }
     .word-preview-paper th, .word-preview-paper td { border: 1px solid #718096; padding: 6px 10px; font-size: 0.95rem; }
     .word-preview-paper th { background: #edf2f7; }
+
+    /* 拖曳高亮效果 */
+    .drop-zone-active {
+      border-color: #005757 !important;
+      background-color: #e6f4f4 !important;
+    }
   </style>
 </head>
 <body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col font-sans">
@@ -94,9 +100,9 @@
         <div>
           <div class="flex items-center gap-2">
             <h1 class="font-bold text-xl tracking-wider leading-none">翔奕營造</h1>
-            <span class="text-[11px] bg-white/20 px-2 py-0.5 rounded font-semibold tracking-normal">公文管理系統（多檔雲端版）</span>
+            <span class="text-[11px] bg-white/20 px-2 py-0.5 rounded font-semibold tracking-normal">公文管理系統（雲端版）</span>
           </div>
-          <p class="text-xs text-teal-100 mt-1">工程案場公文收發、Word (.docx) 批次自動擷取與多人即時雲端同步</p>
+          <p class="text-xs text-teal-100 mt-1">工程案場公文收發、Word (.doc / .docx) 批次自動擷取與多人即時雲端同步</p>
         </div>
       </div>
 
@@ -108,7 +114,6 @@
         <button onclick="exportCSV()" class="flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm bg-teal-900/70 hover:bg-teal-800 rounded border border-teal-600 transition text-white">
           <i data-lucide="download" class="w-4 h-4"></i> 匯出總表
         </button>
-        <!-- 上傳多個公文按鈕 -->
         <button onclick="openModal()" class="flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold rounded-lg shadow transition">
           <i data-lucide="file-plus-2" class="w-4 h-4"></i> 批次上傳公文 (Word)
         </button>
@@ -123,7 +128,7 @@
         <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
         <span>☁️ <strong>雲端狀態：</strong><span id="cloud-status-text">就緒（已連接 Google 試算表與雲端硬碟）</span></span>
       </div>
-      <span class="text-[11px] text-teal-700">支援同時選取多份 Word 檔批次上傳辨識</span>
+      <span class="text-[11px] text-teal-700">支援 .doc 與 .docx，可多選檔案或直接拖曳上傳</span>
     </div>
   </div>
 
@@ -297,7 +302,7 @@
   </div>
   <div id="drawer-backdrop" onclick="closeDrawer()" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden"></div>
 
-  <!-- 批次上傳多份公文 (Word) Modal -->
+  <!-- 批次上傳多份公文 Modal -->
   <div id="upload-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-3xl w-full p-5 shadow-2xl overflow-y-auto max-h-[92vh]">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -309,23 +314,38 @@
 
       <div class="space-y-4 mt-3 text-xs">
         
-        <!-- 多檔選取區塊 (可多選 multiple) -->
-        <div class="p-3.5 bg-gradient-to-r from-blue-50 to-teal-50/70 border-2 border-dashed border-teal-500 rounded-xl space-y-2">
-          <div class="flex items-center justify-between">
+        <!-- 放寬副檔名限制 + 支援拖曳的區塊 -->
+        <div 
+          id="drag-drop-area"
+          class="p-4 bg-gradient-to-r from-blue-50 to-teal-50/70 border-2 border-dashed border-teal-500 rounded-xl space-y-2 text-center transition cursor-pointer"
+          onclick="document.getElementById('form-word-multiple-files').click()"
+        >
+          <div class="flex items-center justify-between pointer-events-none">
             <label class="font-bold text-teal-950 flex items-center gap-1.5 text-sm">
-              <i data-lucide="files" class="w-4 h-4 text-amber-500"></i> 選擇一至多份 Word 公文檔 (.docx)
+              <i data-lucide="files" class="w-4 h-4 text-amber-500"></i> 選擇或「拖曳」Word 公文檔至此處
             </label>
-            <span class="text-[10px] bg-teal-100 text-teal-800 px-2 py-0.5 rounded font-bold">按住 Ctrl/Cmd 可多選檔案</span>
+            <span class="text-[10px] bg-teal-100 text-teal-800 px-2 py-0.5 rounded font-bold">支援 .doc 與 .docx</span>
           </div>
+
+          <div class="py-2 pointer-events-none">
+            <i data-lucide="upload-cloud" class="w-8 h-8 mx-auto text-teal-600 mb-1"></i>
+            <p class="text-xs font-bold text-slate-700">點此選取檔案，或直接從電腦把公文「拖進來」</p>
+            <p class="text-[11px] text-slate-400">已全面解鎖格式，不論新舊版 Word 皆可正常顯示與選取</p>
+          </div>
+
+          <!-- 放寬 accept，不強制鎖死在 .docx -->
           <input 
             type="file" 
             id="form-word-multiple-files" 
-            accept=".docx" 
             multiple
+            accept=".docx,.doc,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,*/*"
             onchange="handleMultipleWordFiles(event)"
-            class="block w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-bold file:bg-teal-700 file:text-white hover:file:bg-teal-800 cursor-pointer"
+            class="hidden"
           />
-          <p id="multi-parse-status" class="text-[11px] text-slate-500">可一次拖曳或選取多個檔案，系統將自動逐一提取各公文字號、主旨、主辦機關、監造與案場。</p>
+          
+          <p id="multi-parse-status" class="text-[11px] text-slate-500 text-left pointer-events-none border-t border-teal-200/60 pt-2 mt-1">
+            可一次框選多個檔案，系統將自動解析案場名稱、發文字號、主辦機關與公文主旨。
+          </p>
         </div>
 
         <!-- 批次辨識結果卡片清單 -->
@@ -341,7 +361,7 @@
           <div id="batch-items-container" class="space-y-3 max-h-[380px] overflow-y-auto pr-1">
             <div class="py-8 text-center text-slate-400 bg-slate-50 border border-slate-200 rounded-xl">
               <i data-lucide="file-up" class="w-8 h-8 mx-auto mb-1 text-slate-300"></i>
-              請先於上方選取一至多個 Word 檔案 (.docx)
+              請先於上方選取或拖曳 Word 檔案
             </div>
           </div>
         </div>
@@ -361,17 +381,15 @@
     // 您的 Google Apps Script Web App URL
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyKvxFSqn9gfmF78fjnk5jeSnmPECx2ulnNlqmf-Um4jjKaBmYovA48YIO0EdMJkYn-/exec";
 
-    // 公文類別專屬配色表
     const categoryColors = {
-      '函': { bg: '#1D4ED8', text: '#ffffff' },          // 寶藍
-      '書函': { bg: '#0284C7', text: '#ffffff' },        // 天青藍
-      '開工/變更報備': { bg: '#D97706', text: '#ffffff' }, // 琥珀橙
-      '審查意見書': { bg: '#BE185D', text: '#ffffff' },   // 玫瑰紫紅
-      '會議紀錄': { bg: '#7C3AED', text: '#ffffff' },     // 紫羅蘭
-      '工務通報': { bg: '#059669', text: '#ffffff' }      // 工務綠
+      '函': { bg: '#1D4ED8', text: '#ffffff' },
+      '書函': { bg: '#0284C7', text: '#ffffff' },
+      '開工/變更報備': { bg: '#D97706', text: '#ffffff' },
+      '審查意見書': { bg: '#BE185D', text: '#ffffff' },
+      '會議紀錄': { bg: '#7C3AED', text: '#ffffff' },
+      '工務通報': { bg: '#059669', text: '#ffffff' }
     };
 
-    // 預設示範資料
     const initialDocuments = [
       {
         id: "doc-1",
@@ -428,9 +446,9 @@
 
     let documents = JSON.parse(localStorage.getItem('XIANGYI_CLOUD_DOCS_STORE')) || initialDocuments;
     let selectedProject = "ALL";
-    let batchPendingList = []; // 批次上傳暫存清單
+    let batchPendingList = [];
 
-    // 從 Google Apps Script 載入最新雲端公文清單
+    // 從 Google Apps Script 載入雲端公文清單
     async function loadFromCloud(isManual = false) {
       const statusEl = document.getElementById('cloud-status-text');
       statusEl.innerText = "正在從 Google 雲端同步最新資料庫...";
@@ -634,7 +652,7 @@
       lucide.createIcons();
     }
 
-    // 自動辨識 Word 檔案內容核心函數
+    // 自動辨識 Word 檔案內容
     function autoParseDocumentContent(rawText, fileName) {
       let extracted = { project: '', code: '', date: '', sender: '', receiver: '', type: '函', urgency: '普通件', subject: '' };
 
@@ -695,43 +713,55 @@
       return extracted;
     }
 
-    // ==========================================
-    // 支援批次多選 Word 處理函數
-    // ==========================================
-    async function handleMultipleWordFiles(event) {
-      const files = Array.from(event.target.files);
+    // 處理批次選取或拖曳進來的檔案
+    async function processFilesList(files) {
       const statusEl = document.getElementById('multi-parse-status');
       const submitBtn = document.getElementById('batch-submit-btn');
       
       if (!files || files.length === 0) return;
 
-      statusEl.innerHTML = `<span class="text-teal-700 font-bold animate-pulse">正在批次讀取並解析 ${files.length} 份 Word 檔案內容...</span>`;
+      statusEl.innerHTML = `<span class="text-teal-700 font-bold animate-pulse">正在批次讀取並解析 ${files.length} 份公文內容...</span>`;
       batchPendingList = [];
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        if (!file.name.endsWith('.docx')) continue;
+        const isDocx = file.name.toLowerCase().endsWith('.docx');
+        const isDoc = file.name.toLowerCase().endsWith('.doc');
+
+        if (!isDocx && !isDoc) continue;
 
         try {
-          const arrayBuffer = await file.arrayBuffer();
-          const resultHtml = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
-          const resultText = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
-          
-          // 轉換 Base64 供雲端存檔
+          let htmlContent = "";
+          let rawTextContent = "";
+
+          if (isDocx) {
+            const arrayBuffer = await file.arrayBuffer();
+            const resultHtml = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
+            const resultText = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+            htmlContent = resultHtml.value;
+            rawTextContent = resultText.value;
+          } else {
+            // .doc (舊版二進位格式) 提取可讀中文字串
+            const textDecoder = new TextDecoder("big5");
+            const buf = await file.arrayBuffer();
+            const rawStr = textDecoder.decode(buf);
+            rawTextContent = rawStr.replace(/[^\u4e00-\u9fa5a-zA-Z0-9，。、：:號\-]/g, ' ').replace(/\s+/g, ' ');
+            htmlContent = `<p style="white-space:pre-wrap;">${rawTextContent.substring(0, 800)}...</p><p class="text-slate-400 italic text-xs mt-2">（此為 .doc 格式公文摘要，可點擊上方下載原檔）</p>`;
+          }
+
           const base64Data = await new Promise((resolve) => {
             const reader = new FileReader();
             reader.onloadend = () => resolve(reader.result);
             reader.readAsDataURL(file);
           });
 
-          const rawText = resultText.value;
-          const parsed = autoParseDocumentContent(rawText, file.name);
+          const parsed = autoParseDocumentContent(rawTextContent, file.name);
 
           batchPendingList.push({
             tempId: "temp-" + Date.now() + "-" + i,
             fileName: file.name,
-            html: resultHtml.value,
-            rawText: rawText,
+            html: htmlContent,
+            rawText: rawTextContent,
             base64: base64Data,
             project: parsed.project || "未指定案場",
             code: parsed.code || "未辨識出字號",
@@ -740,17 +770,21 @@
             receiver: parsed.receiver || "翔奕營造有限公司",
             type: parsed.type || "函",
             urgency: parsed.urgency || "普通件",
-            subject: parsed.subject || file.name.replace('.docx', '')
+            subject: parsed.subject || file.name.replace(/\.[^/.]+$/, "")
           });
         } catch (err) {
           console.error("解析檔案錯誤:", file.name, err);
         }
       }
 
-      statusEl.innerHTML = `<span class="text-emerald-700 font-bold flex items-center gap-1"><i data-lucide="check-circle" class="w-4 h-4"></i> 已成功解析 ${batchPendingList.length} 份公文！請於下方確認或微調後上傳。</span>`;
+      statusEl.innerHTML = `<span class="text-emerald-700 font-bold flex items-center gap-1"><i data-lucide="check-circle" class="w-4 h-4"></i> 已成功讀取 ${batchPendingList.length} 份公文！請於下方確認或微調後上傳。</span>`;
       submitBtn.disabled = batchPendingList.length === 0;
       renderBatchItems();
       lucide.createIcons();
+    }
+
+    function handleMultipleWordFiles(event) {
+      processFilesList(Array.from(event.target.files));
     }
 
     // 渲染批次待確認清單介面
@@ -763,13 +797,11 @@
         container.innerHTML = `
           <div class="py-8 text-center text-slate-400 bg-slate-50 border border-slate-200 rounded-xl">
             <i data-lucide="file-up" class="w-8 h-8 mx-auto mb-1 text-slate-300"></i>
-            請先於上方選取一至多個 Word 檔案 (.docx)
+            請先於上方選取或拖曳 Word 檔案
           </div>
         `;
         return;
       }
-
-      const projects = getProjectsList();
 
       container.innerHTML = batchPendingList.map((item, idx) => `
         <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 relative hover:border-teal-400 transition space-y-2">
@@ -871,11 +903,9 @@
           wordFileUrl: ""
         };
 
-        // 加入本機清單
         documents.unshift(newDoc);
         successCount++;
 
-        // 同步發送至 Google Apps Script 後端
         try {
           await fetch(APPS_SCRIPT_URL, {
             method: "POST",
@@ -980,7 +1010,7 @@
     function openModal() {
       batchPendingList = [];
       document.getElementById('form-word-multiple-files').value = '';
-      document.getElementById('multi-parse-status').innerHTML = '可一次拖曳或選取多個檔案，系統將自動逐一提取各公文字號、主旨、主辦機關、監造與案場。';
+      document.getElementById('multi-parse-status').innerHTML = '可一次框選多個檔案，系統將自動逐一提取各公文字號、主旨、主辦機關、監造與案場。';
       document.getElementById('batch-submit-btn').disabled = true;
       renderBatchItems();
       document.getElementById('upload-modal').classList.remove('hidden');
@@ -1018,6 +1048,34 @@
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+    }
+
+    // 拖曳上傳 (Drag & Drop) 事件監聽
+    function initDragAndDrop() {
+      const dropZone = document.getElementById('drag-drop-area');
+      if (!dropZone) return;
+
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropZone.classList.add('drop-zone-active');
+        }, false);
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropZone.classList.remove('drop-zone-active');
+        }, false);
+      });
+
+      dropZone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        processFilesList(Array.from(files));
+      }, false);
     }
 
     // 表格欄位拖曳拉寬
@@ -1060,8 +1118,8 @@
       updateStats();
       renderDocList();
       initColumnResizers();
+      initDragAndDrop();
       lucide.createIcons();
-      // 開啟時自動向 Google 雲端拉取最新資料
       loadFromCloud();
     });
   </script>
