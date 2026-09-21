@@ -114,6 +114,7 @@
         <button onclick="exportCSV()" class="flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm bg-teal-900/70 hover:bg-teal-800 rounded border border-teal-600 transition text-white">
           <i data-lucide="download" class="w-4 h-4"></i> 匯出總表
         </button>
+        <!-- 上傳多個公文按鈕 -->
         <button onclick="openModal()" class="flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold rounded-lg shadow transition">
           <i data-lucide="file-plus-2" class="w-4 h-4"></i> 批次上傳公文 (Word)
         </button>
@@ -302,6 +303,11 @@
   </div>
   <div id="drawer-backdrop" onclick="closeDrawer()" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden"></div>
 
+  <!-- 全域共享案場 Datalist 選單池 -->
+  <datalist id="all-projects-datalist">
+    <!-- JS 動態填入所有既有案場 -->
+  </datalist>
+
   <!-- 批次上傳多份公文 Modal -->
   <div id="upload-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-3xl w-full p-5 shadow-2xl overflow-y-auto max-h-[92vh]">
@@ -312,9 +318,9 @@
         <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
       </div>
 
-      <div class="space-y-4 mt-3 text-xs">
+      <div class="space-y-3.5 mt-3 text-xs">
         
-        <!-- 放寬副檔名限制 + 支援拖曳的區塊 -->
+        <!-- 檔案上傳與拖曳區 -->
         <div 
           id="drag-drop-area"
           class="p-4 bg-gradient-to-r from-blue-50 to-teal-50/70 border-2 border-dashed border-teal-500 rounded-xl space-y-2 text-center transition cursor-pointer"
@@ -329,11 +335,10 @@
 
           <div class="py-2 pointer-events-none">
             <i data-lucide="upload-cloud" class="w-8 h-8 mx-auto text-teal-600 mb-1"></i>
-            <p class="text-xs font-bold text-slate-700">點此選取檔案，或直接從電腦把公文「拖進來」</p>
-            <p class="text-[11px] text-slate-400">已全面解鎖格式，不論新舊版 Word 皆可正常顯示與選取</p>
+            <p class="text-xs font-bold text-slate-700">點此選取檔案，或直接從電腦把公文「整批拖進來」</p>
+            <p class="text-[11px] text-slate-400">已解鎖格式限制，新舊版 Word 檔案皆可正常顯示與選取</p>
           </div>
 
-          <!-- 放寬 accept，不強制鎖死在 .docx -->
           <input 
             type="file" 
             id="form-word-multiple-files" 
@@ -348,6 +353,30 @@
           </p>
         </div>
 
+        <!-- 批次快速設定工具列（一鍵統一套用） -->
+        <div id="quick-batch-bar" class="hidden bg-teal-50/80 p-2.5 rounded-xl border border-teal-300 flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-teal-950 text-xs flex items-center gap-1">
+              <i data-lucide="wand-2" class="w-3.5 h-3.5 text-amber-600"></i> 批次快速套用：
+            </span>
+            <input 
+              type="text" 
+              id="bulk-project-input" 
+              list="all-projects-datalist" 
+              placeholder="點擊下拉選取或輸入案場..." 
+              class="p-1.5 bg-white border border-teal-400 rounded text-xs w-60 font-bold text-teal-900 focus:ring-2 focus:ring-teal-600"
+            />
+            <button 
+              type="button" 
+              onclick="applyBulkProject()" 
+              class="px-3 py-1.5 bg-teal-700 hover:bg-teal-800 text-white font-bold rounded text-xs shadow-xs transition"
+            >
+              ⚡ 一鍵套用至下方全部項目
+            </button>
+          </div>
+          <span class="text-[11px] text-teal-700 font-medium">適合整批檔案屬於同一個案場時使用</span>
+        </div>
+
         <!-- 批次辨識結果卡片清單 -->
         <div>
           <div class="flex items-center justify-between mb-2">
@@ -355,10 +384,10 @@
               <span>待確認上傳清單</span>
               <span id="batch-count-badge" class="bg-teal-100 text-teal-800 px-1.5 py-0.2 rounded text-[10px] font-bold">0 筆</span>
             </h4>
-            <span class="text-[11px] text-slate-400">已自動擷取各檔案資訊，您可直接微調各欄位</span>
+            <span class="text-[11px] text-slate-400">案場已支援下拉選單與手動輸入</span>
           </div>
           
-          <div id="batch-items-container" class="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+          <div id="batch-items-container" class="space-y-3 max-h-[360px] overflow-y-auto pr-1">
             <div class="py-8 text-center text-slate-400 bg-slate-50 border border-slate-200 rounded-xl">
               <i data-lucide="file-up" class="w-8 h-8 mx-auto mb-1 text-slate-300"></i>
               請先於上方選取或拖曳 Word 檔案
@@ -378,7 +407,6 @@
   </div>
 
   <script>
-    // 您的 Google Apps Script Web App URL
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyKvxFSqn9gfmF78fjnk5jeSnmPECx2ulnNlqmf-Um4jjKaBmYovA48YIO0EdMJkYn-/exec";
 
     const categoryColors = {
@@ -461,6 +489,7 @@
           renderProjectTabs();
           updateStats();
           renderDocList();
+          updateDatalists();
           statusEl.innerText = `同步成功！已連線 Google 試算表（共 ${documents.length} 筆公文）`;
           if (isManual) alert('已成功從雲端同步最新公文！');
         } else {
@@ -476,6 +505,14 @@
       const projects = new Set();
       documents.forEach(d => { if (d.project) projects.add(d.project); });
       return Array.from(projects);
+    }
+
+    // 更新案場全域下拉資料池 (Datalist)
+    function updateDatalists() {
+      const projects = getProjectsList();
+      const datalist = document.getElementById('all-projects-datalist');
+      if (!datalist) return;
+      datalist.innerHTML = projects.map(p => `<option value="${p}">${p}</option>`).join('');
     }
 
     function saveToStorage() {
@@ -517,6 +554,7 @@
       });
 
       container.innerHTML = html;
+      updateDatalists();
     }
 
     function updateStats() {
@@ -717,6 +755,7 @@
     async function processFilesList(files) {
       const statusEl = document.getElementById('multi-parse-status');
       const submitBtn = document.getElementById('batch-submit-btn');
+      const quickBar = document.getElementById('quick-batch-bar');
       
       if (!files || files.length === 0) return;
 
@@ -741,7 +780,6 @@
             htmlContent = resultHtml.value;
             rawTextContent = resultText.value;
           } else {
-            // .doc (舊版二進位格式) 提取可讀中文字串
             const textDecoder = new TextDecoder("big5");
             const buf = await file.arrayBuffer();
             const rawStr = textDecoder.decode(buf);
@@ -763,7 +801,7 @@
             html: htmlContent,
             rawText: rawTextContent,
             base64: base64Data,
-            project: parsed.project || "未指定案場",
+            project: parsed.project || "",
             code: parsed.code || "未辨識出字號",
             date: parsed.date || new Date().toISOString().split('T')[0],
             sender: parsed.sender || "主辦機關",
@@ -779,6 +817,7 @@
 
       statusEl.innerHTML = `<span class="text-emerald-700 font-bold flex items-center gap-1"><i data-lucide="check-circle" class="w-4 h-4"></i> 已成功讀取 ${batchPendingList.length} 份公文！請於下方確認或微調後上傳。</span>`;
       submitBtn.disabled = batchPendingList.length === 0;
+      if (batchPendingList.length > 0) quickBar.classList.remove('hidden');
       renderBatchItems();
       lucide.createIcons();
     }
@@ -787,7 +826,20 @@
       processFilesList(Array.from(event.target.files));
     }
 
-    // 渲染批次待確認清單介面
+    // 一鍵統一套用案場名稱至全部清單
+    function applyBulkProject() {
+      const bulkVal = document.getElementById('bulk-project-input').value.trim();
+      if (!bulkVal) {
+        alert('請先於上方選取或輸入要統一帶入的案場名稱！');
+        return;
+      }
+      batchPendingList.forEach(item => {
+        item.project = bulkVal;
+      });
+      renderBatchItems();
+    }
+
+    // 渲染批次待確認清單介面（改為可下拉 + 可打字 Datalist）
     function renderBatchItems() {
       const container = document.getElementById('batch-items-container');
       const countBadge = document.getElementById('batch-count-badge');
@@ -813,9 +865,17 @@
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <!-- 改為可點擊右側箭頭下拉，亦可直接輸入 -->
             <div>
-              <label class="block font-bold text-slate-600 mb-0.5 text-[10px]">所屬案場</label>
-              <input type="text" value="${item.project}" oninput="updateBatchField(${idx}, 'project', this.value)" class="w-full p-1.5 bg-white border border-slate-300 rounded text-xs text-teal-900 font-bold" placeholder="案場名稱" />
+              <label class="block font-bold text-slate-600 mb-0.5 text-[10px]">所屬案場（可下拉選取 / 輸入）</label>
+              <input 
+                type="text" 
+                list="all-projects-datalist"
+                value="${item.project}" 
+                oninput="updateBatchField(${idx}, 'project', this.value)" 
+                class="w-full p-1.5 bg-white border border-slate-300 rounded text-xs text-teal-900 font-bold focus:ring-2 focus:ring-teal-600" 
+                placeholder="-- 點此下拉或輸入案場 --" 
+              />
             </div>
             <div>
               <label class="block font-bold text-slate-600 mb-0.5 text-[10px]">公文字號</label>
@@ -869,6 +929,9 @@
     function removeBatchItem(index) {
       batchPendingList.splice(index, 1);
       document.getElementById('batch-submit-btn').disabled = batchPendingList.length === 0;
+      if (batchPendingList.length === 0) {
+        document.getElementById('quick-batch-bar').classList.add('hidden');
+      }
       renderBatchItems();
     }
 
@@ -889,7 +952,7 @@
         const newDoc = {
           id: "doc-" + Date.now() + "-" + i,
           code: item.code.trim() || "未命名字號",
-          project: item.project.trim() || "綜合案場",
+          project: item.project.trim() || "未指定案場",
           date: item.date,
           sender: item.sender.trim() || "未載明",
           receiver: item.receiver.trim() || "翔奕營造有限公司",
@@ -1010,8 +1073,10 @@
     function openModal() {
       batchPendingList = [];
       document.getElementById('form-word-multiple-files').value = '';
-      document.getElementById('multi-parse-status').innerHTML = '可一次框選多個檔案，系統將自動逐一提取各公文字號、主旨、主辦機關、監造與案場。';
+      document.getElementById('multi-parse-status').innerHTML = '可一次框選多個檔案，系統將自動解析案場名稱、發文字號、主辦機關與公文主旨。';
       document.getElementById('batch-submit-btn').disabled = true;
+      document.getElementById('quick-batch-bar').classList.add('hidden');
+      document.getElementById('bulk-project-input').value = '';
       renderBatchItems();
       document.getElementById('upload-modal').classList.remove('hidden');
       lucide.createIcons();
