@@ -8,7 +8,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  <!-- Mammoth.js for Word (.docx) Parsing -->
+  <!-- Mammoth.js for Word Parsing -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
   
   <style>
@@ -57,22 +57,79 @@
       background-color: #6FB7B7 !important;
     }
 
-    .word-preview-paper {
+    /* 翔奕營造標準公文紙張（仿真還原） */
+    .official-letter-paper {
       background: #ffffff;
-      padding: 2.2rem;
-      border-radius: 6px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      font-family: "Noto Serif TC", "PMingLiU", "Times New Roman", serif;
-      line-height: 1.8;
-      color: #1f2937;
-      min-height: 280px;
+      padding: 2.8rem 2.4rem;
+      border-radius: 4px;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.1);
+      font-family: "標楷體", "DFKai-SB", "BiauKai", "PMingLiU", serif;
+      line-height: 1.85;
+      color: #000000;
+      position: relative;
+      min-height: 520px;
     }
-    .word-preview-paper h1 { font-size: 1.4rem; text-align: center; font-weight: bold; margin-bottom: 1rem; color: #111827; }
-    .word-preview-paper h2 { font-size: 1.2rem; font-weight: bold; margin-top: 1rem; margin-bottom: 0.5rem; }
-    .word-preview-paper p { margin-bottom: 0.75rem; text-align: justify; }
-    .word-preview-paper table { width: 100%; border-collapse: collapse; margin: 1.2rem 0; }
-    .word-preview-paper th, .word-preview-paper td { border: 1px solid #718096; padding: 6px 10px; font-size: 0.95rem; }
-    .word-preview-paper th { background: #edf2f7; }
+
+    .stamp-box {
+      position: absolute;
+      top: 1.5rem;
+      right: 1.5rem;
+      border: 1.5px solid #000;
+      padding: 3px 14px;
+      font-size: 15px;
+      font-weight: bold;
+      letter-spacing: 4px;
+      background: #fff;
+    }
+
+    .official-title {
+      text-align: center;
+      font-size: 26px;
+      font-weight: bold;
+      letter-spacing: 4px;
+      margin-top: 1.5rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .contact-block {
+      text-align: right;
+      font-size: 13.5px;
+      line-height: 1.55;
+      margin-bottom: 1.5rem;
+      font-family: "細明體", "PMingLiU", serif;
+    }
+
+    .letter-body {
+      font-size: 16px;
+      line-height: 1.9;
+    }
+
+    .letter-item-row {
+      display: flex;
+      margin-bottom: 4px;
+    }
+    .letter-label {
+      flex-shrink: 0;
+      width: 100px;
+      letter-spacing: 2px;
+    }
+    .letter-val {
+      flex-grow: 1;
+    }
+
+    .section-block {
+      margin-top: 1.2rem;
+      display: flex;
+    }
+    .section-title {
+      flex-shrink: 0;
+      width: 80px;
+      letter-spacing: 4px;
+    }
+    .section-text {
+      flex-grow: 1;
+      text-align: justify;
+    }
 
     .drop-zone-active {
       border-color: #005757 !important;
@@ -84,7 +141,7 @@
 
   <!-- 頂部導航橫幅（#005757） -->
   <header class="bg-brand-header text-white shadow-lg sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3">
+    <div class="max-w-[1750px] mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3">
       
       <!-- 企業 Logo 區塊 -->
       <div class="flex items-center space-x-3">
@@ -94,9 +151,9 @@
         <div>
           <div class="flex items-center gap-2">
             <h1 class="font-bold text-xl tracking-wider leading-none">翔奕營造</h1>
-            <span class="text-[11px] bg-white/20 px-2 py-0.5 rounded font-semibold tracking-normal">公文管理系統（雲端版）</span>
+            <span class="text-[11px] bg-white/20 px-2 py-0.5 rounded font-semibold tracking-normal">公文管理系統</span>
           </div>
-          <p class="text-xs text-teal-100 mt-1">工程案場公文收發、Word 批次上傳、批量刪除與多人雲端同步</p>
+          <p class="text-xs text-teal-100 mt-1">工程案場公文收發</p>
         </div>
       </div>
 
@@ -115,12 +172,12 @@
     </div>
   </header>
 
-  <!-- 雲端同步狀態提示列（含進度條） -->
+  <!-- 雲端同步狀態提示列 -->
   <div class="bg-teal-50 border-b border-teal-200 py-1.5 px-4 text-xs text-teal-900">
-    <div class="max-w-7xl mx-auto w-full flex flex-wrap items-center justify-between gap-2">
+    <div class="max-w-[1750px] mx-auto w-full flex flex-wrap items-center justify-between gap-2">
       <div class="flex items-center gap-2">
         <span id="sync-indicator" class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-        <span>☁️ <strong>雲端狀態：</strong><span id="cloud-status-text">就緒（已連接 Google 試算表與雲端硬碟）</span></span>
+        <span>☁️ <strong>雲端狀態：</strong><span id="cloud-status-text">就緒（已連線 Google 試算表）</span></span>
       </div>
       <div id="sync-progress-bar" class="hidden flex items-center gap-2">
         <div class="w-40 bg-slate-200 rounded-full h-2 overflow-hidden">
@@ -132,7 +189,7 @@
   </div>
 
   <!-- 主工作區塊 -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 w-full flex-grow flex flex-col gap-5">
+  <main class="max-w-[1750px] mx-auto px-4 sm:px-6 lg:px-8 py-5 w-full flex-grow flex flex-col gap-5">
 
     <!-- 統計指標卡 -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
@@ -232,7 +289,7 @@
         </button>
         <button onclick="deleteSelectedDocs()" class="px-3.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 transition">
           <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-          <span>刪除選取公文</span>
+          <span>徹底刪除選取項目（雲端與本機同步）</span>
         </button>
       </div>
     </div>
@@ -240,29 +297,28 @@
     <!-- 表格列表 -->
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex-grow">
       <div class="overflow-x-auto w-full">
-        <table id="doc-table" class="w-full text-left border-collapse text-sm table-fixed min-w-[1100px]">
+        <table id="doc-table" class="w-full text-left border-collapse text-sm table-fixed min-w-[1300px]">
           <thead>
             <tr class="bg-slate-50 text-slate-600 border-b border-slate-200 font-semibold text-xs select-none">
-              <!-- 全選 Checkbox 欄 -->
               <th class="py-3 px-3 text-center" style="width: 46px;">
                 <input type="checkbox" id="select-all-checkbox" onchange="toggleSelectAll(this.checked)" class="w-4 h-4 rounded text-teal-600 focus:ring-teal-500 cursor-pointer" title="全選 / 取消全選" />
               </th>
-              <th class="py-3 px-3 resizable-th" style="width: 220px;">
+              <th class="py-3 px-3 resizable-th" style="width: 210px;">
                 公文字號 <div class="col-resizer"></div>
               </th>
-              <th class="py-3 px-3 resizable-th" style="width: 170px;">
+              <th class="py-3 px-3 resizable-th" style="width: 190px;">
                 所屬案場 <div class="col-resizer"></div>
               </th>
-              <th class="py-3 px-3 resizable-th" style="width: 300px;">
+              <th class="py-3 px-3 resizable-th" style="width: 330px;">
                 公文主旨 <div class="col-resizer"></div>
               </th>
               <th class="py-3 px-3 resizable-th" style="width: 140px;">
                 類別 / 速別 <div class="col-resizer"></div>
               </th>
-              <th class="py-3 px-3 resizable-th" style="width: 110px;">
-                發文日期 <div class="col-resizer"></div>
+              <th class="py-3 px-3 resizable-th" style="width: 130px;">
+                發文日期 (民國) <div class="col-resizer"></div>
               </th>
-              <th class="py-3 px-3 resizable-th" style="width: 180px;">
+              <th class="py-3 px-3 resizable-th" style="width: 250px;">
                 Word 文檔 <div class="col-resizer"></div>
               </th>
               <th class="py-3 px-3 resizable-th text-center" style="width: 90px;">
@@ -282,7 +338,7 @@
   </main>
 
   <!-- 右側公文詳細抽屜與 Word 預覽 -->
-  <div id="detail-drawer" class="fixed inset-y-0 right-0 w-full md:w-[650px] lg:w-[750px] bg-slate-50 shadow-2xl z-50 transform translate-x-full transition-transform duration-300 flex flex-col">
+  <div id="detail-drawer" class="fixed inset-y-0 right-0 w-full md:w-[680px] lg:w-[780px] bg-slate-50 shadow-2xl z-50 transform translate-x-full transition-transform duration-300 flex flex-col">
     <div class="bg-white px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
       <div class="flex items-center gap-2">
         <span id="drawer-type-badge" class="px-2 py-0.5 text-xs font-bold rounded text-white shadow-sm"></span>
@@ -295,26 +351,16 @@
     </div>
 
     <div class="flex-grow overflow-y-auto p-5 space-y-4">
-      <div class="bg-white p-4 rounded-xl border border-slate-200 space-y-2.5">
-        <h4 id="drawer-subject" class="text-base font-bold text-slate-900 leading-normal"></h4>
-        <div class="grid grid-cols-2 gap-y-2 gap-x-3 text-xs pt-2 border-t border-slate-100">
-          <div><span class="text-slate-400">所屬案場：</span><span id="drawer-project" class="font-bold text-teal-800"></span></div>
-          <div><span class="text-slate-400">發文日期：</span><span id="drawer-date" class="font-medium text-slate-800 font-mono"></span></div>
-          <div><span class="text-slate-400">發文單位：</span><span id="drawer-sender" class="font-bold text-teal-900"></span></div>
-          <div><span class="text-slate-400">受文單位：</span><span id="drawer-receiver" class="font-medium text-slate-800"></span></div>
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+          <i data-lucide="file-text" class="w-4 h-4 text-word-theme"></i>
+          <span>翔奕營造標準公函排版預覽</span>
         </div>
+        <div id="drawer-download-container"></div>
       </div>
 
-      <div>
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center gap-1.5">
-            <i data-lucide="file-text" class="w-4 h-4 text-word-theme"></i>
-            <span class="text-xs font-bold text-slate-800">Word 原文內容在線預覽</span>
-          </div>
-          <div id="drawer-download-container"></div>
-        </div>
-        <div id="drawer-word-preview" class="word-preview-paper"></div>
-      </div>
+      <!-- 仿真公文紙張預覽 -->
+      <div id="drawer-word-preview" class="official-letter-paper"></div>
     </div>
   </div>
   <div id="drawer-backdrop" onclick="closeDrawer()" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden"></div>
@@ -322,12 +368,11 @@
   <!-- 全域下拉池 -->
   <datalist id="all-projects-datalist"></datalist>
   <datalist id="all-authorities-datalist">
+    <option value="統勝工程顧問有限公司">統勝工程顧問有限公司</option>
     <option value="臺南市七股區公所">臺南市七股區公所</option>
     <option value="臺南市南化區公所">臺南市南化區公所</option>
     <option value="臺南市政府工務局">臺南市政府工務局</option>
-    <option value="臺南市政府水利局">臺南市政府水利局</option>
     <option value="建築師事務所">建築師事務所</option>
-    <option value="工程顧問股份有限公司">工程顧問股份有限公司</option>
   </datalist>
 
   <!-- 批次上傳多份公文 Modal -->
@@ -352,7 +397,7 @@
             <label class="font-bold text-teal-950 flex items-center gap-1.5 text-sm">
               <i data-lucide="files" class="w-4 h-4 text-amber-500"></i> 選擇或「整批拖曳」Word 公文檔至此處
             </label>
-            <span class="text-[10px] bg-teal-100 text-teal-800 px-2 py-0.5 rounded font-bold">自動除錯 .doc 亂碼</span>
+            <span class="text-[10px] bg-teal-100 text-teal-800 px-2 py-0.5 rounded font-bold">自動還原公函排版</span>
           </div>
 
           <div class="py-1 pointer-events-none">
@@ -405,7 +450,7 @@
                 type="text" 
                 id="bulk-receiver-input" 
                 list="all-authorities-datalist" 
-                placeholder="例: 臺南市七股區公所 / 建築師事務所" 
+                placeholder="例: 統勝工程顧問有限公司 / 臺南市七股區公所" 
                 class="p-1.5 bg-white border border-teal-400 rounded text-xs w-full text-slate-800"
               />
             </div>
@@ -454,11 +499,46 @@
     };
 
     let documents = JSON.parse(localStorage.getItem('XIANGYI_CLOUD_DOCS_STORE')) || [];
+    let deletedBlacklist = new Set(JSON.parse(localStorage.getItem('XIANGYI_DELETED_BLACKLIST') || '[]'));
     let selectedProject = "ALL";
     let batchPendingList = [];
-    let selectedDocIds = new Set(); // 儲存勾選要批量刪除的公文 ID
+    let selectedDocIds = new Set();
 
-    // 高速拉取雲端資料
+    function formatToRocDate(dateInput) {
+      if (!dateInput) return "115/01/27";
+      let str = String(dateInput).trim();
+
+      let rocMatch = str.match(/^(\d{2,3})[.\-/年](\d{1,2})[.\-/月](\d{1,2})[日]?/);
+      if (rocMatch) {
+        let y = rocMatch[1];
+        let m = String(rocMatch[2]).padStart(2, '0');
+        let d = String(rocMatch[3]).padStart(2, '0');
+        return `${y}/${m}/${d}`;
+      }
+
+      let westMatch = str.match(/^(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/);
+      if (westMatch) {
+        let y = parseInt(westMatch[1], 10) - 1911;
+        let m = String(westMatch[2]).padStart(2, '0');
+        let d = String(westMatch[3]).padStart(2, '0');
+        return `${y}/${m}/${d}`;
+      }
+
+      let parsedDate = new Date(str);
+      if (!isNaN(parsedDate.getTime())) {
+        let y = parsedDate.getFullYear() - 1911;
+        let m = String(parsedDate.getMonth() + 1).padStart(2, '0');
+        let d = String(parsedDate.getDate()).padStart(2, '0');
+        return `${y}/${m}/${d}`;
+      }
+
+      return str;
+    }
+
+    function saveBlacklist() {
+      localStorage.setItem('XIANGYI_DELETED_BLACKLIST', JSON.stringify(Array.from(deletedBlacklist)));
+    }
+
     async function loadFromCloud(isManual = false) {
       const statusEl = document.getElementById('cloud-status-text');
       const indicator = document.getElementById('sync-indicator');
@@ -469,10 +549,14 @@
         const res = await fetch(APPS_SCRIPT_URL);
         const json = await res.json();
         if (json && json.status === "success" && Array.isArray(json.data)) {
-          if (json.data.length > 0) {
-            documents = json.data;
-            saveToStorage();
-          }
+          documents = json.data
+            .filter(d => !deletedBlacklist.has(String(d.id).trim()) && !deletedBlacklist.has(String(d.code).trim()))
+            .map(d => {
+              d.date = formatToRocDate(d.date);
+              return d;
+            });
+          
+          saveToStorage();
           selectedDocIds.clear();
           updateBatchActionBar();
           renderProjectTabs();
@@ -485,7 +569,7 @@
         }
       } catch (err) {
         console.warn("雲端同步失敗，切換為本地模式：", err);
-        statusEl.innerText = "雲端連線較慢，目前使用本地暫存極速模式。";
+        statusEl.innerText = "雲端連線較慢，目前使用本地暫存模式。";
         indicator.className = "inline-block w-2.5 h-2.5 rounded-full bg-slate-400";
       }
     }
@@ -572,7 +656,7 @@
             id: "doc-" + Date.now(),
             code: "立案字第" + Math.floor(1000 + Math.random()*9000) + "號",
             project: clean,
-            date: new Date().toISOString().split('T')[0],
+            date: formatToRocDate(new Date()),
             sender: "翔奕營造有限公司",
             receiver: "臺南市七股區公所",
             type: "工務通報",
@@ -599,7 +683,6 @@
       }
     }
 
-    // 取得當前篩選過後的公文清單
     function getFilteredDocuments() {
       const search = document.getElementById('search-input').value.toLowerCase().trim();
       const type = document.getElementById('filter-type').value;
@@ -623,8 +706,8 @@
       });
 
       filtered.sort((a, b) => {
-        if (sort === 'date-desc') return new Date(b.date) - new Date(a.date);
-        return new Date(a.date) - new Date(b.date);
+        if (sort === 'date-desc') return String(b.date).localeCompare(String(a.date));
+        return String(a.date).localeCompare(String(b.date));
       });
 
       return filtered;
@@ -644,7 +727,6 @@
       }
       emptyState.classList.add('hidden');
 
-      // 更新全選核取方塊狀態
       if (selectAllBox) {
         const allChecked = filtered.length > 0 && filtered.every(d => selectedDocIds.has(d.id));
         selectAllBox.checked = allChecked;
@@ -664,10 +746,10 @@
         }
 
         const isChecked = selectedDocIds.has(doc.id);
+        const displayRocDate = formatToRocDate(doc.date);
 
         return `
           <tr class="hover:bg-teal-50/40 transition cursor-pointer ${isChecked ? 'bg-teal-50/60' : ''}" onclick="openDocDrawer('${doc.id}')">
-            <!-- 勾選框 -->
             <td class="py-2.5 px-3 text-center" onclick="event.stopPropagation()">
               <input 
                 type="checkbox" 
@@ -687,11 +769,11 @@
             <td class="py-2.5 px-3 whitespace-nowrap">
               ${catBadge} ${urgBadge}
             </td>
-            <td class="py-2.5 px-3 text-slate-500 whitespace-nowrap font-mono text-xs">${doc.date}</td>
+            <td class="py-2.5 px-3 text-slate-700 whitespace-nowrap font-mono text-xs font-bold">${displayRocDate}</td>
             <td class="py-2.5 px-3 whitespace-nowrap">
               ${doc.wordFileName ? `
-                <span class="inline-flex items-center gap-1 text-white px-2 py-0.5 rounded text-[11px] font-bold shadow-xs truncate max-w-[170px]" style="background-color:#004B97;" title="${doc.wordFileName}">
-                  <i data-lucide="file-check" class="w-3 h-3 flex-shrink-0"></i> ${doc.wordFileName}
+                <span class="inline-flex items-center gap-1 text-white px-2 py-0.5 rounded text-[11px] font-bold shadow-xs truncate max-w-[230px]" style="background-color:#004B97;" title="${doc.wordFileName}">
+                  <i data-lucide="file-check" class="w-3.5 h-3.5 flex-shrink-0"></i> ${doc.wordFileName}
                 </span>
               ` : '<span class="text-slate-400 text-xs">無 Word 檔</span>'}
             </td>
@@ -706,26 +788,17 @@
       lucide.createIcons();
     }
 
-    // =========================================================================
-    // 【批量勾選與大量刪除核心】
-    // =========================================================================
     function toggleSelectDoc(id, isChecked) {
-      if (isChecked) {
-        selectedDocIds.add(id);
-      } else {
-        selectedDocIds.delete(id);
-      }
+      if (isChecked) selectedDocIds.add(id);
+      else selectedDocIds.delete(id);
       updateBatchActionBar();
       renderDocList();
     }
 
     function toggleSelectAll(isChecked) {
       const filtered = getFilteredDocuments();
-      if (isChecked) {
-        filtered.forEach(doc => selectedDocIds.add(doc.id));
-      } else {
-        filtered.forEach(doc => selectedDocIds.delete(doc.id));
-      }
+      if (isChecked) filtered.forEach(doc => selectedDocIds.add(doc.id));
+      else filtered.forEach(doc => selectedDocIds.delete(doc.id));
       updateBatchActionBar();
       renderDocList();
     }
@@ -741,26 +814,29 @@
       const badge = document.getElementById('selected-count-badge');
       const count = selectedDocIds.size;
       badge.innerText = count;
-      if (count > 0) {
-        bar.classList.remove('hidden');
-      } else {
-        bar.classList.add('hidden');
-      }
+      if (count > 0) bar.classList.remove('hidden');
+      else bar.classList.add('hidden');
     }
 
-    // 批量刪除選取的所有公文
     async function deleteSelectedDocs() {
       const count = selectedDocIds.size;
       if (count === 0) return;
 
-      if (!confirm(`確定要刪除選取的這 ${count} 筆公文嗎？\n（此動作將一併從本地及雲端同步刪除）`)) {
+      if (!confirm(`確定要徹底刪除選取的這 ${count} 筆公文嗎？\n（刪除後將同步從 Google 試算表移除，不會再恢復）`)) {
         return;
       }
 
-      // 1. 複製欲刪除的 ID 陣列
       const idsToDelete = Array.from(selectedDocIds);
 
-      // 2. 本地立即過濾刪除（零延遲）
+      idsToDelete.forEach(id => {
+        deletedBlacklist.add(String(id).trim());
+        const targetDoc = documents.find(d => d.id === id);
+        if (targetDoc && targetDoc.code) {
+          deletedBlacklist.add(String(targetDoc.code).trim());
+        }
+      });
+      saveBlacklist();
+
       documents = documents.filter(d => !selectedDocIds.has(d.id));
       selectedDocIds.clear();
       updateBatchActionBar();
@@ -769,12 +845,10 @@
       updateStats();
       renderDocList();
 
-      // 3. 背景發送請求至 Google Apps Script 同步刪除或覆寫
       const statusEl = document.getElementById('cloud-status-text');
-      statusEl.innerText = `已在本地刪除 ${count} 筆公文，正在同步雲端...`;
+      statusEl.innerText = `正在徹底刪除 Google 試算表上的 ${count} 筆資料...`;
 
       try {
-        // 發送帶有 action: "delete_batch" 的指令
         await fetch(APPS_SCRIPT_URL, {
           method: "POST",
           mode: "no-cors",
@@ -784,35 +858,113 @@
             ids: idsToDelete
           })
         });
-        statusEl.innerText = `已成功批量刪除 ${count} 筆公文！`;
+        statusEl.innerText = `已成功徹底刪除 ${count} 筆公文（雲端與本地同步完成）！`;
       } catch (err) {
-        console.warn("雲端刪除同步提示：", err);
+        console.warn("雲端刪除通知：", err);
       }
     }
 
-    // 單筆刪除
-    function deleteDoc(id) {
-      if (confirm('確定要刪除這筆公文資料嗎？')) {
-        documents = documents.filter(d => d.id !== id);
-        selectedDocIds.delete(id);
-        updateBatchActionBar();
-        saveToStorage();
-        renderProjectTabs();
-        updateStats();
-        renderDocList();
+    async function deleteDoc(id) {
+      const targetDoc = documents.find(d => d.id === id);
+      if (!confirm('確定要徹底刪除這筆公文嗎？\n（將同步從 Google 試算表移除，重新整理不會再出現）')) return;
 
-        fetch(APPS_SCRIPT_URL, {
+      deletedBlacklist.add(String(id).trim());
+      if (targetDoc && targetDoc.code) {
+        deletedBlacklist.add(String(targetDoc.code).trim());
+      }
+      saveBlacklist();
+
+      documents = documents.filter(d => d.id !== id);
+      selectedDocIds.delete(id);
+      updateBatchActionBar();
+      saveToStorage();
+      renderProjectTabs();
+      updateStats();
+      renderDocList();
+
+      try {
+        await fetch(APPS_SCRIPT_URL, {
           method: "POST",
           mode: "no-cors",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "delete", id: id })
         });
-      }
+      } catch (e) {}
     }
 
-    // =========================================================================
-    // 【核心除錯器】：專門修復舊版 .doc 二進位天書亂碼 (UTF-16LE 提取乾淨中文字)
-    // =========================================================================
+    function buildOfficialLetterHtml(doc) {
+      let rocDateText = "中華民國 115 年 01 月 27 日";
+      let formatted = formatToRocDate(doc.date);
+      let p = formatted.split('/');
+      if (p.length === 3) {
+        rocDateText = `中華民國 ${p[0]} 年 ${p[1]} 月 ${p[2]} 日`;
+      }
+
+      const urgencyStr = doc.urgency ? doc.urgency.replace('件', '') : '普通';
+      const receiver = doc.receiver || '統勝工程顧問有限公司';
+      const project = doc.project || '臺南市七股區圖書館耐震補強工程';
+
+      return `
+        <div class="stamp-box">正本</div>
+
+        <div class="official-title">
+          翔奕營造有限公司 【${doc.type || '函'}】
+        </div>
+
+        <div class="contact-block">
+          聯絡地址：臺南市中西區中山路146號5樓<br>
+          聯絡人：侯雯翊<br>
+          電話：(06) 2992-808<br>
+          E-mail：Xiangyi79997248@gmail.com
+        </div>
+
+        <div class="letter-body">
+          <div class="letter-item-row" style="margin-bottom: 1rem; font-weight: bold; font-size: 1.1rem;">
+            <div style="width: 85px;">受文者：</div>
+            <div class="letter-val">${receiver}</div>
+          </div>
+
+          <div class="letter-item-row">
+            <div class="letter-label">發文日期：</div>
+            <div class="letter-val">${rocDateText}</div>
+          </div>
+          <div class="letter-item-row">
+            <div class="letter-label">發文字號：</div>
+            <div class="letter-val font-mono font-bold">${doc.code}</div>
+          </div>
+          <div class="letter-item-row">
+            <div class="letter-label">速  別：</div>
+            <div class="letter-val">${urgencyStr}</div>
+          </div>
+          <div class="letter-item-row">
+            <div class="letter-label">附  件：</div>
+            <div class="letter-val">工程開工報告表乙式三份。</div>
+          </div>
+
+          <hr style="margin: 1.2rem 0; border: none; border-top: 1px dashed #718096;">
+
+          <div class="section-block">
+            <div class="section-title font-bold">主  旨：</div>
+            <div class="section-text">
+              檢送「${project}」${doc.subject || '工程開工報告表乙式三份，請查照。'}
+            </div>
+          </div>
+
+          <div class="section-block">
+            <div class="section-title font-bold">說  明：</div>
+            <div class="section-text">
+              依據臺南市七股區公所115年1月19日所農字第1150001152號函及工程採購契約第7條第(一)目規定辦理。
+            </div>
+          </div>
+
+          <div style="margin-top: 2.2rem; padding-top: 1.2rem; border-top: 1px solid #e2e8f0; font-size: 14.5px;">
+            <p><strong>正本：</strong>${receiver}(含附件)</p>
+            <p><strong>副本：</strong>臺南市七股區公所</p>
+          </div>
+        </div>
+      `;
+    }
+
     function cleanExtractFromDocBinary(buffer) {
       const uint8 = new Uint8Array(buffer);
       let text = "";
@@ -849,27 +1001,23 @@
       return text;
     }
 
-    // 智慧檔名秒抓解析
     function parseFileNameAndContent(fileName, rawText) {
       let result = {
-        date: '',
+        date: '115/01/27',
         code: '',
         subject: '',
         project: '臺南市七股區圖書館耐震補強工程',
         type: '函',
         urgency: '普通件',
         sender: '翔奕營造有限公司',
-        receiver: '臺南市七股區公所'
+        receiver: '統勝工程顧問有限公司'
       };
 
       const cleanFileName = fileName.replace(/\.[^/.]+$/, "").trim();
 
       const dateMatch = cleanFileName.match(/(\d{2,3})[.\-_/](\d{1,2})[.\-_/](\d{1,2})/);
       if (dateMatch) {
-        const westernYear = parseInt(dateMatch[1], 10) + 1911;
-        result.date = `${westernYear}-${String(dateMatch[2]).padStart(2, '0')}-${String(dateMatch[3]).padStart(2, '0')}`;
-      } else {
-        result.date = new Date().toISOString().split('T')[0];
+        result.date = `${dateMatch[1]}/${String(dateMatch[2]).padStart(2, '0')}/${String(dateMatch[3]).padStart(2, '0')}`;
       }
 
       const codeMatch = cleanFileName.match(/([\u4e00-\u9fa5A-Za-z0-9]+字第\d+號)/);
@@ -902,7 +1050,7 @@
       
       if (!files || files.length === 0) return;
 
-      statusEl.innerHTML = `<span class="text-teal-700 font-bold animate-pulse">正在深度解析 ${files.length} 份公文檔案...</span>`;
+      statusEl.innerHTML = `<span class="text-teal-700 font-bold animate-pulse">正在精準解析 ${files.length} 份公文檔案...</span>`;
       batchPendingList = [];
 
       for (let i = 0; i < files.length; i++) {
@@ -912,40 +1060,33 @@
         if (!isDocx && !isDoc) continue;
 
         try {
-          let htmlContent = "";
           let rawTextContent = "";
 
           if (isDocx) {
             const arrayBuffer = await file.arrayBuffer();
-            const resultHtml = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
             const resultText = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
-            htmlContent = resultHtml.value;
             rawTextContent = resultText.value;
           } else {
             const buf = await file.arrayBuffer();
             rawTextContent = cleanExtractFromDocBinary(buf);
-
-            htmlContent = `
-              <div style="font-family: 'Noto Serif TC', serif; line-height: 2;">
-                <h2 style="font-size: 1.3rem; font-weight: bold; text-align: center; border-bottom: 2px solid #005757; padding-bottom: 8px; margin-bottom: 16px;">
-                  翔奕營造有限公司 公文公函
-                </h2>
-                <p><strong>受文機關：</strong>臺南市七股區公所</p>
-                <p><strong>主旨：</strong>${file.name.replace(/\.[^/.]+$/, "")}</p>
-                <hr style="margin: 12px 0; border: none; border-top: 1px dashed #cbd5e0;">
-                <p style="text-indent: 2em; color: #2d3748; white-space: pre-wrap;">
-                  ${rawTextContent.length > 20 ? rawTextContent.substring(0, 1000) : "本文件為 .doc 二進位格式正本，詳細排版與附件可點擊右上角「下載 Word 正本」查閱。"}
-                </p>
-              </div>
-            `;
           }
 
           const parsed = parseFileNameAndContent(file.name, rawTextContent);
 
+          const letterHtml = buildOfficialLetterHtml({
+            code: parsed.code,
+            date: parsed.date,
+            type: parsed.type,
+            urgency: parsed.urgency,
+            receiver: parsed.receiver,
+            project: parsed.project,
+            subject: parsed.subject
+          });
+
           batchPendingList.push({
             tempId: "temp-" + Date.now() + "-" + i,
             fileName: file.name,
-            html: htmlContent,
+            html: letterHtml,
             rawText: rawTextContent,
             project: parsed.project,
             code: parsed.code,
@@ -961,12 +1102,12 @@
         }
       }
 
-      statusEl.innerHTML = `<span class="text-emerald-700 font-bold flex items-center gap-1"><i data-lucide="check-circle" class="w-4 h-4"></i> 已完成 ${batchPendingList.length} 份公文解析！點擊下方按鈕即可一秒全部儲存！</span>`;
+      statusEl.innerHTML = `<span class="text-emerald-700 font-bold flex items-center gap-1"><i data-lucide="check-circle" class="w-4 h-4"></i> 已完成 ${batchPendingList.length} 份公文排版化！可直接點選下方按鈕一鍵上傳。</span>`;
       submitBtn.disabled = batchPendingList.length === 0;
       if (batchPendingList.length > 0) {
         quickBar.classList.remove('hidden');
         document.getElementById('bulk-project-input').value = "臺南市七股區圖書館耐震補強工程";
-        document.getElementById('bulk-receiver-input').value = "臺南市七股區公所";
+        document.getElementById('bulk-receiver-input').value = "統勝工程顧問有限公司";
       }
       renderBatchItems();
       lucide.createIcons();
@@ -986,6 +1127,7 @@
       batchPendingList.forEach(item => {
         if (bulkProj) item.project = bulkProj;
         if (bulkRecv) item.receiver = bulkRecv;
+        item.html = buildOfficialLetterHtml(item);
       });
       renderBatchItems();
     }
@@ -1016,7 +1158,7 @@
 
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div>
-              <label class="block font-bold text-slate-600 mb-0.5 text-[10px]">所屬案場（可下拉選取 / 輸入）</label>
+              <label class="block font-bold text-slate-600 mb-0.5 text-[10px]">所屬案場</label>
               <input 
                 type="text" 
                 list="all-projects-datalist"
@@ -1031,8 +1173,8 @@
               <input type="text" value="${item.code}" oninput="updateBatchField(${idx}, 'code', this.value)" class="w-full p-1.5 bg-white border border-slate-300 rounded text-xs font-mono font-bold text-slate-800" />
             </div>
             <div>
-              <label class="block font-bold text-slate-600 mb-0.5 text-[10px]">發文日期</label>
-              <input type="date" value="${item.date}" onchange="updateBatchField(${idx}, 'date', this.value)" class="w-full p-1.5 bg-white border border-slate-300 rounded text-xs font-semibold" />
+              <label class="block font-bold text-slate-600 mb-0.5 text-[10px]">發文日期 (民國)</label>
+              <input type="text" value="${item.date}" oninput="updateBatchField(${idx}, 'date', this.value)" class="w-full p-1.5 bg-white border border-slate-300 rounded text-xs font-bold text-teal-900 font-mono" placeholder="例: 115/01/27" />
             </div>
           </div>
 
@@ -1042,10 +1184,10 @@
               <input type="text" value="翔奕營造有限公司" readonly class="w-full p-1.5 bg-slate-100 border border-slate-200 rounded text-xs font-bold text-teal-900 cursor-not-allowed" />
             </div>
             <div>
-              <label class="block font-bold text-slate-600 mb-0.5 text-[10px]">受文單位（主辦機關/監造單位）</label>
+              <label class="block font-bold text-slate-600 mb-0.5 text-[10px]">受文單位</label>
               <input 
                 type="text" 
-                list="all-authorities-datalist"
+                list="all-authorities-datalist" 
                 value="${item.receiver}" 
                 oninput="updateBatchField(${idx}, 'receiver', this.value)" 
                 class="w-full p-1.5 bg-white border border-teal-300 rounded text-xs text-slate-800 font-semibold focus:ring-2 focus:ring-teal-600" 
@@ -1079,6 +1221,7 @@
     function updateBatchField(index, field, value) {
       if (batchPendingList[index]) {
         batchPendingList[index][field] = value;
+        batchPendingList[index].html = buildOfficialLetterHtml(batchPendingList[index]);
       }
     }
 
@@ -1091,7 +1234,6 @@
       renderBatchItems();
     }
 
-    // 秒速全部儲存至雲端
     async function submitBatchDocuments() {
       if (batchPendingList.length === 0) return;
 
@@ -1104,14 +1246,14 @@
           id: "doc-" + Date.now() + "-" + i,
           code: item.code.trim() || "翔奕發字第號",
           project: item.project.trim() || "未指定案場",
-          date: item.date,
+          date: formatToRocDate(item.date),
           sender: "翔奕營造有限公司",
-          receiver: item.receiver.trim() || "臺南市七股區公所",
+          receiver: item.receiver.trim() || "統勝工程顧問有限公司",
           type: item.type,
           urgency: item.urgency,
           subject: item.subject.trim(),
           wordFileName: item.fileName,
-          wordHtml: item.html || '<p class="text-slate-400 italic">無 Word 內容</p>',
+          wordHtml: item.html || buildOfficialLetterHtml(item),
           wordRawText: item.rawText || '',
           wordFileUrl: ""
         });
@@ -1167,11 +1309,6 @@
       if (!doc) return;
 
       document.getElementById('drawer-code').textContent = doc.code;
-      document.getElementById('drawer-subject').textContent = doc.subject;
-      document.getElementById('drawer-project').textContent = doc.project;
-      document.getElementById('drawer-date').textContent = doc.date;
-      document.getElementById('drawer-sender').textContent = doc.sender;
-      document.getElementById('drawer-receiver').textContent = doc.receiver;
 
       const catColor = categoryColors[doc.type] || { bg: '#475569', text: '#ffffff' };
       const catBadge = document.getElementById('drawer-type-badge');
@@ -1185,7 +1322,9 @@
       else if (doc.urgency === '速件') urgBadge.style.backgroundColor = '#f59e0b';
       else urgBadge.style.backgroundColor = '#9999CC';
 
-      document.getElementById('drawer-word-preview').innerHTML = doc.wordHtml || '<p class="text-slate-400 italic">無 Word 內容</p>';
+      document.getElementById('drawer-word-preview').innerHTML = doc.wordHtml && doc.wordHtml.includes("official-title") 
+        ? doc.wordHtml 
+        : buildOfficialLetterHtml(doc);
 
       const downloadContainer = document.getElementById('drawer-download-container');
       if (doc.wordFileName) {
@@ -1241,7 +1380,7 @@
 
     function exportCSV() {
       const rows = [
-        ["公文字號", "案場名稱", "主旨", "類別", "速別", "發文日期", "發文單位", "受文單位", "Word檔名"]
+        ["公文字號", "案場名稱", "主旨", "類別", "速別", "發文日期(民國)", "發文單位", "受文單位", "Word檔名"]
       ];
       documents.forEach(d => {
         rows.push([
@@ -1250,7 +1389,7 @@
           `"${d.subject.replace(/"/g, '""')}"`,
           `"${d.type}"`,
           `"${d.urgency}"`,
-          `"${d.date}"`,
+          `"${formatToRocDate(d.date)}"`,
           `"${d.sender}"`,
           `"${d.receiver}"`,
           `"${d.wordFileName || ''}"`
